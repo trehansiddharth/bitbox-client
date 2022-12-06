@@ -1,0 +1,4 @@
+.conda-env/
+.venv-env/
+.mypy_cache/
+__pycache__/
