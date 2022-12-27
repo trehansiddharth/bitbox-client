@@ -1,0 +1,21 @@
+import enum
+
+class Error(enum.Enum):
+  AUTHENTICATION_FAILED = "authentication-failed"
+  USER_NOT_FOUND = "user-not-found"
+  USER_EXISTS = "user-exists"
+  INVALID_USERNAME = "invalid-username"
+  INVALID_PUBLIC_KEY = "invalid-public-key"
+  FILE_TOO_LARGE = "file-too-large"
+  FILE_EXISTS = "file-exists"
+  FILE_NOT_FOUND = "file-not-found"
+  FILENAME_NOT_SPECIFIC = "filename-not-specific"
+  FILE_NOT_READY = "file-not-ready"
+  OTC_NOT_GENERATED = "otc-not-generated"
+  INVALID_OTC = "invalid-otc"
+  INVALID_NUM_BYTES = "invalid-num-bytes"
+  ACCESS_DENIED = "access-denied"
+  SERVER_SIDE_ERROR = "server-side-error"
+  CONFIG_PARSE_FAILED = "config-parse-failed"
+  SYNC_EXISTS = "sync-exists"
+  SYNC_NOT_FOUND = "sync-not-found"
