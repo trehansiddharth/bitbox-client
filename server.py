@@ -21,6 +21,11 @@ def printServerError() -> None:
   console.print("An error occurred on the server", style="red")
   sys.exit(1)
 
+def printInvalidVersionError() -> None:
+  console = Console()
+  console.print("Your Bitbox version is invalid. Please update to the latest version.", style="red")
+  sys.exit(1)
+
 #
 # Get User Info
 #
@@ -54,11 +59,14 @@ def registerUser(username: str, publicKey: str, encryptedPrivateKey: str) -> Uni
   registerUserBody = {
     "username": username,
     "publicKey": publicKey,
-    "encryptedPrivateKey": encryptedPrivateKey
+    "encryptedPrivateKey": encryptedPrivateKey,
+    "version": BITBOX_VERSION,
   }
   response = requests.post(f"http://{BITBOX_HOST}/api/auth/register/user", json=registerUserBody)
   if response.status_code == BITBOX_STATUS_OK:
     return None
+  elif response.text == Error.INVALID_VERSION.value:
+    printInvalidVersionError()
   elif response.text == Error.SERVER_SIDE_ERROR.value:
     printServerError()
   else:
@@ -90,11 +98,14 @@ RecoverKeysError = Union[
 def recoverKeys(username: str, otc: str) -> Union[str, RecoverKeysError]:
   recoverKeysBody = {
     "username": username,
-    "otc": otc
+    "otc": otc,
+    "version": BITBOX_VERSION
   }
   response = requests.post(f"http://{BITBOX_HOST}/api/auth/recover/recover-keys", json=recoverKeysBody)
   if response.status_code == BITBOX_STATUS_OK:
     return response.text
+  elif response.text == Error.INVALID_VERSION.value:
+    printInvalidVersionError()
   elif response.text == Error.SERVER_SIDE_ERROR.value:
     printServerError()
   else:
@@ -132,11 +143,14 @@ LoginError = Union[
 def login(username: str, challengeResponse: str) -> Union[Session, LoginError]:
   loginBody = {
     "username": username,
-    "challengeResponse": challengeResponse
+    "challengeResponse": challengeResponse,
+    "version": BITBOX_VERSION
   }
   response = requests.post(f"http://{BITBOX_HOST}/api/auth/login/login", json=loginBody)
   if response.status_code == BITBOX_STATUS_OK:
     return response.headers["set-cookie"]
+  elif response.text == Error.INVALID_VERSION.value:
+    printInvalidVersionError()
   elif response.text == Error.SERVER_SIDE_ERROR.value:
     printServerError()
   else:

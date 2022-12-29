@@ -15,6 +15,7 @@ class Error(enum.Enum):
   INVALID_OTC = "invalid-otc"
   INVALID_NUM_BYTES = "invalid-num-bytes"
   ACCESS_DENIED = "access-denied"
+  INVALID_VERSION = "invalid-version"
   SERVER_SIDE_ERROR = "server-side-error"
   CONFIG_PARSE_FAILED = "config-parse-failed"
   SYNC_EXISTS = "sync-exists"
