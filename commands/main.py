@@ -1,7 +1,14 @@
 from commands.common import *
+import sys
 
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context):
+  # Get the user info
+  userInfo = getUserInfo()
+
+  # Log that a command has been invoked
+  server.logEvent(" ".join(sys.argv[1:]), "" if userInfo is None else userInfo.username)
+
   # If a subcommand is invoked, let that subcommand run instead of this routine
   if ctx.invoked_subcommand is not None:
     return
