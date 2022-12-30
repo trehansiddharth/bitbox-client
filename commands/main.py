@@ -7,7 +7,7 @@ def main(ctx: typer.Context):
   userInfo = getUserInfo()
 
   # Log that a command has been invoked
-  server.logEvent(" ".join(sys.argv[1:]), "" if userInfo is None else userInfo.username)
+  server.logCommand(" ".join(sys.argv[1:]), "" if userInfo is None else userInfo.username)
 
   # If a subcommand is invoked, let that subcommand run instead of this routine
   if ctx.invoked_subcommand is not None:

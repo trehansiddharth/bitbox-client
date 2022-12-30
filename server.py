@@ -410,15 +410,30 @@ def userInfo(username: str) -> Union[UserInfoResponse, UserInfoError]:
     return UserInfoResponse(**response.json())
 
 #
-# Log Event
+# Log Command
 #
 
-def logEvent(data: str, username: str) -> None:
-  logEventBody = {
+def logCommand(data: str, username: str) -> None:
+  logCommandBody = {
     "data": data,
-    "username": username
+    "username": username,
+    "context": CURRENT_CONTEXT
   }
-  response = requests.post(f"http://{BITBOX_HOST}/api/log/event", json=logEventBody)
+  response = requests.post(f"http://{BITBOX_HOST}/api/log/command", json=logCommandBody)
+  if response.status_code != BITBOX_STATUS_OK:
+    printServerError()
+
+#
+# Log Error
+#
+
+def logError(data: str, username: str) -> None:
+  logErrorBody = {
+    "data": data,
+    "username": username,
+    "context": CURRENT_CONTEXT
+  }
+  response = requests.post(f"http://{BITBOX_HOST}/api/log/error", json=logErrorBody)
   if response.status_code != BITBOX_STATUS_OK:
     printServerError()
 

@@ -3,6 +3,10 @@ from typing import TypeVar, Dict, Any, Optional, Generic, Literal
 import sys
 from rich.console import Console
 from parameters import *
+import time
+
+# A unique hex string for each time the program is run, used for logging
+CURRENT_CONTEXT = hex(round(time.time() * 1000))[2:]
 
 @dataclass
 class UserInfo:
