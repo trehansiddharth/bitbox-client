@@ -5,15 +5,17 @@ from bitbox.commands.common import *
 #
 
 @app.command(short_help="Share a file from your bitbox with other users")
-def share(file: str, recipients: list[str]):
+def share(
+  remote: str = typer.Argument(..., help="Name of the remote file to share"),
+  recipients: list[str] = typer.Argument(..., help="Usernames of the users to share the file with")):
   # Get user info and try to establish a session
   userInfo, session = loginUser()
   authInfo = AuthInfo(userInfo, session)
 
   # Get the encrypted file key from the server
-  fileInfo = server.fileInfo(file, userInfo.username, authInfo)
+  fileInfo = server.fileInfo(remote, userInfo.username, authInfo)
   guard(fileInfo, {
-    Error.FILE_NOT_FOUND: f"Remote file '@{userInfo.username}/{file}' does not exist."
+    Error.FILE_NOT_FOUND: f"Remote file '@{userInfo.username}/{remote}' does not exist."
   })
   fileId = fileInfo.fileId
   encryptedKey = fileInfo.encryptedKey
@@ -23,7 +25,7 @@ def share(file: str, recipients: list[str]):
   for recipient in recipients:
     # Check if the recipient is a valid username
     if not recipient.startswith("@"):
-      console.print(f"Invalid username '{recipient}' specified as recipient-- usernames must start with '@'.", style="red")
+      console.print(f"Invalid username '{recipient}' specified as recipient (usernames start with '@').", style="red")
       raise typer.Exit(code=1)
     
     # Get the public key of the recipient
@@ -51,4 +53,4 @@ def share(file: str, recipients: list[str]):
   guard(shareResponse)
 
   # Print a success message
-  success(f"{file} has been shared with: {', '.join(recipients)}")
+  success(f"{remote} has been shared with: {', '.join(recipients)}")

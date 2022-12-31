@@ -81,7 +81,7 @@ def syncFile(authInfo: AuthInfo, file: str, syncRecord : syncModule.SyncRecord, 
 # Sync command
 #
 
-@app.command(short_help="Synchronize all clones in the current directory or in a given path with their remotes")
+@app.command(short_help="Synchronize all clones in a given path with their remotes")
 def sync(path: str = typer.Argument(".", help="Path to synchronize")):
   # Get user info and try to establish a session
   userInfo, session = loginUser()
