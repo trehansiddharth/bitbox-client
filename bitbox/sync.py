@@ -4,6 +4,7 @@ from bitbox.parameters import *
 import json
 import os
 import shutil
+from bitbox.errors import *
 
 BITBOX_SYNCS_FOLDER = os.path.join(BITBOX_CONFIG_FOLDER, "syncs")
 BITBOX_SYNC_INFO_PATH = os.path.join(BITBOX_CONFIG_FOLDER, "syncinfo.json")

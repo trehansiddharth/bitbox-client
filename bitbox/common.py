@@ -4,6 +4,7 @@ import sys
 from rich.console import Console
 from bitbox.parameters import *
 import time
+from bitbox.errors import *
 
 # A unique hex string for each time the program is run, used for logging
 CURRENT_CONTEXT = hex(round(time.time() * 1000))[2:]
