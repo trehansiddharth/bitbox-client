@@ -11,7 +11,8 @@ setup(
   long_description=open("README.md").read(),
   entry_points={
     "console_scripts": [
-      "bitbox = bitbox.main:run"
+      "bitbox = bitbox.main:run",
+      "bb = bitbox.main:run"
     ],
   },
   install_requires=[
