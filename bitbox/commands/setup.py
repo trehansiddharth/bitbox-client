@@ -1,4 +1,4 @@
-from commands.common import *
+from bitbox.commands.common import *
 
 #
 # Setup command

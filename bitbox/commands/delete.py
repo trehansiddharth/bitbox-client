@@ -1,5 +1,5 @@
-from commands.common import *
-import sync
+from bitbox.commands.common import *
+import bitbox.sync as sync
 
 @app.command(short_help="Delete a file from your bitbox without affecting local files")
 def delete(remote: str = typer.Argument(..., help="Name of the remote file to delete.")):

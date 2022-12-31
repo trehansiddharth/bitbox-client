@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import TypeVar, Dict, Any, Optional, Generic, Literal
 import sys
 from rich.console import Console
-from parameters import *
+from bitbox.parameters import *
 import time
 
 # A unique hex string for each time the program is run, used for logging

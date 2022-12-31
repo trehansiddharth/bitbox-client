@@ -1,4 +1,4 @@
-from commands.common import *
+from bitbox.commands.common import *
 
 @app.command(short_help="List all files in your bitbox")
 def files():

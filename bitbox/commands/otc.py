@@ -1,4 +1,4 @@
-from commands.common import *
+from bitbox.commands.common import *
 
 @app.command(short_help="Generate a one-time-code to setup Bitbox on another machine")
 def otc():

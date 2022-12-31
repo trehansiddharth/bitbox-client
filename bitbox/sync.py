@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-from parameters import *
+from bitbox.parameters import *
 import json
 import os
 import shutil

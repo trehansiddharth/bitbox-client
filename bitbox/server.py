@@ -1,13 +1,14 @@
 import requests
-from parameters import *
+from bitbox.parameters import *
 from dataclasses import dataclass
 from typing import Dict, Union, TypeVar, Any
 import sys
 from rich.console import Console
 from Crypto.PublicKey import RSA
-from common import *
-import util
+from bitbox.common import *
+import bitbox.util as util
 import binascii
+from bitbox.errors import *
 
 def err(value: Any, errs: list[Error] = []) -> bool:
   if isinstance(value, Error):

@@ -2,10 +2,10 @@ import typer
 import requests
 import os
 from rich.table import Table
-from parameters import *
-from util import *
-from commands import *
-import sync
+from bitbox.parameters import *
+from bitbox.util import *
+from bitbox.commands import *
+import bitbox.sync as sync
 
 def run():
   try:

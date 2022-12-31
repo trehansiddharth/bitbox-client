@@ -10,10 +10,11 @@ from Crypto.Cipher import PKCS1_OAEP
 from Crypto.PublicKey import RSA
 import cryptocode
 from datetime import datetime
-from parameters import *
-import server
+from bitbox.parameters import *
+import bitbox.server as server
 import sys
-from common import *
+from bitbox.common import *
+from bitbox.errors import *
 
 def getPersonalKeyFromPassword(password: str) -> str:
   return hashlib.sha256(password.encode("utf-8")).hexdigest()

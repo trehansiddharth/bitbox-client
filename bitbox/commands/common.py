@@ -13,14 +13,14 @@ import re
 from rich.console import Console
 from rich.table import Table
 from rich.prompt import Confirm, Prompt
-from commands.otc_dict import otcDict
-from parameters import *
-from util import *
-from commands import *
-import server
-from common import *
+from bitbox.commands.otc_dict import otcDict
+from bitbox.parameters import *
+from bitbox.util import *
+import bitbox.server as server
+from bitbox.common import *
 import enum
 from typing import Optional
+from bitbox.errors import *
 
 #
 # Global variables

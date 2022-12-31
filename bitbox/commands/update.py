@@ -1,5 +1,5 @@
-from commands.common import *
-import sync
+from bitbox.commands.common import *
+import bitbox.sync as sync
 
 #
 # Push command

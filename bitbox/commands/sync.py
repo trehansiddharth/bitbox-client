@@ -1,5 +1,5 @@
-from commands.common import *
-import sync as syncModule
+from bitbox.commands.common import *
+import bitbox.sync as syncModule
 
 #
 # Utility functions
