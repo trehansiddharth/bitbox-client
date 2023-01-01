@@ -7,7 +7,7 @@ from bitbox.commands.common import *
 @app.command(short_help="Share a file from your bitbox with other users")
 def share(
   remote: str = typer.Argument(..., help="Name of the remote file to share"),
-  recipients: list[str] = typer.Argument(..., help="Usernames of the users to share the file with")):
+  recipients: List[str] = typer.Argument(..., help="Usernames of the users to share the file with")):
   # Get user info and try to establish a session
   userInfo, session = loginUser()
   authInfo = AuthInfo(userInfo, session)

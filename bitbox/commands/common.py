@@ -19,7 +19,7 @@ from bitbox.util import *
 import bitbox.server as server
 from bitbox.common import *
 import enum
-from typing import Optional
+from typing import Optional, List
 from bitbox.errors import *
 
 #
@@ -148,7 +148,7 @@ def humanReadableJSTimestamp(timestamp: int) -> str:
   else:
     return datetime.utcfromtimestamp(timestamp / 1000).strftime("%a, %b %d, %Y")
 
-def printFilesInfo(userInfo: UserInfo, filesInfo: list[FileInfo]) -> None:
+def printFilesInfo(userInfo: UserInfo, filesInfo: List[FileInfo]) -> None:
   table = Table()
   table.add_column("Remote Filename")
   table.add_column("Size")

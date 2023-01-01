@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 from bitbox.parameters import *
 import json
 import os
@@ -18,7 +18,7 @@ class SyncRecord:
   lastHash: str
   inode: Inode
 
-SyncInfo = list[SyncRecord]
+SyncInfo = List[SyncRecord]
 
 #
 # Utility functions

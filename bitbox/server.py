@@ -1,7 +1,7 @@
 import requests
 from bitbox.parameters import *
 from dataclasses import dataclass
-from typing import Dict, Union, TypeVar, Any
+from typing import Dict, Union, Any, List, Literal
 import sys
 from rich.console import Console
 from Crypto.PublicKey import RSA
@@ -10,7 +10,7 @@ import bitbox.util as util
 import binascii
 from bitbox.errors import *
 
-def err(value: Any, errs: list[Error] = []) -> bool:
+def err(value: Any, errs: List[Error] = []) -> bool:
   if isinstance(value, Error):
     if errs == []:
       return True
@@ -35,7 +35,7 @@ def printInvalidVersionError() -> None:
 class UserInfoResponse:
   publicKey: str
 
-UserInfoError = Error.USER_NOT_FOUND
+UserInfoError = Literal[Error.USER_NOT_FOUND]
 
 def userInfo(username: str) -> Union[UserInfoResponse, UserInfoError]:
   response = requests.post(f"http://{BITBOX_HOST}/api/info/user", json={ "username" : username })
@@ -51,9 +51,9 @@ def userInfo(username: str) -> Union[UserInfoResponse, UserInfoError]:
 #
 
 RegisterUserError = Union[
-  Error.USER_EXISTS,
-  Error.INVALID_USERNAME,
-  Error.INVALID_PUBLIC_KEY
+  Literal[Error.USER_EXISTS],
+  Literal[Error.INVALID_USERNAME],
+  Literal[Error.INVALID_PUBLIC_KEY]
 ]
 
 def registerUser(username: str, publicKey: str, encryptedPrivateKey: str) -> Union[None, RegisterUserError]:
@@ -91,9 +91,9 @@ def generateOTC(authInfo: AuthInfo) -> GenerateOTCResponse:
 #
 
 RecoverKeysError = Union[
-  Error.USER_NOT_FOUND,
-  Error.OTC_NOT_GENERATED,
-  Error.INVALID_OTC
+  Literal[Error.USER_NOT_FOUND],
+  Literal[Error.OTC_NOT_GENERATED],
+  Literal[Error.INVALID_OTC]
 ]
 
 def recoverKeys(username: str, otc: str) -> Union[str, RecoverKeysError]:
@@ -118,7 +118,7 @@ def recoverKeys(username: str, otc: str) -> Union[str, RecoverKeysError]:
 
 ChallengeResponse = str
 
-ChallengeError = Error.USER_NOT_FOUND
+ChallengeError = Literal[Error.USER_NOT_FOUND]
 
 def challenge(username: str) -> Union[ChallengeResponse, ChallengeError]:
   challengeBody = {
@@ -137,8 +137,8 @@ def challenge(username: str) -> Union[ChallengeResponse, ChallengeError]:
 #
 
 LoginError = Union[
-  Error.USER_NOT_FOUND,
-  Error.AUTHENTICATION_FAILED
+  Literal[Error.USER_NOT_FOUND],
+  Literal[Error.AUTHENTICATION_FAILED]
 ]
 
 def login(username: str, challengeResponse: str) -> Union[Session, LoginError]:
@@ -167,9 +167,9 @@ class PrepareStoreResponse:
   uploadURL: str
 
 PrepareStoreError = Union[
-  Error.INVALID_NUM_BYTES,
-  Error.FILE_TOO_LARGE,
-  Error.FILE_EXISTS
+  Literal[Error.INVALID_NUM_BYTES],
+  Literal[Error.FILE_TOO_LARGE],
+  Literal[Error.FILE_EXISTS]
 ]
 
 def prepareStore(filename: str, bytes: int, hash: str, personalEncryptedKey: str, authInfo: AuthInfo) -> Union[PrepareStoreResponse, PrepareStoreError]:
@@ -200,10 +200,10 @@ class PrepareUpdateResponse:
   uploadURL: str
 
 PrepareUpdateError = Union[
-  Error.INVALID_NUM_BYTES,
-  Error.FILE_TOO_LARGE,
-  Error.FILE_NOT_READY,
-  Error.FILE_NOT_FOUND
+  Literal[Error.INVALID_NUM_BYTES],
+  Literal[Error.FILE_TOO_LARGE],
+  Literal[Error.FILE_NOT_READY],
+  Literal[Error.FILE_NOT_FOUND]
 ]
 
 def prepareUpdate(fileId: str, bytes: int, hash: str, authInfo: AuthInfo) -> Union[PrepareUpdateResponse, PrepareUpdateError]:
@@ -229,8 +229,8 @@ def prepareUpdate(fileId: str, bytes: int, hash: str, authInfo: AuthInfo) -> Uni
 #
 
 StoreError = Union[
-  Error.FILE_NOT_FOUND,
-  Error.ACCESS_DENIED
+  Literal[Error.FILE_NOT_FOUND],
+  Literal[Error.ACCESS_DENIED]
 ]
 
 def store(fileId: str, authInfo: AuthInfo) -> Union[None, StoreError]:
@@ -252,8 +252,8 @@ def store(fileId: str, authInfo: AuthInfo) -> Union[None, StoreError]:
 #
 
 ShareError = Union[
-  Error.FILE_NOT_FOUND,
-  Error.USER_NOT_FOUND
+  Literal[Error.FILE_NOT_FOUND],
+  Literal[Error.USER_NOT_FOUND]
 ]
 
 def share(fileId: str, recipientEncryptedKeys: Dict[str, str], authInfo: AuthInfo) -> Union[None, ShareError]:
@@ -282,8 +282,8 @@ class SaveResponse:
   hash: str
 
 SaveError = Union[
-  Error.FILE_NOT_FOUND,
-  Error.FILE_NOT_READY
+  Literal[Error.FILE_NOT_FOUND],
+  Literal[Error.FILE_NOT_READY]
 ]
 
 def save(fileId: str, authInfo: AuthInfo) -> Union[SaveResponse, SaveError]:
@@ -307,8 +307,8 @@ def save(fileId: str, authInfo: AuthInfo) -> Union[SaveResponse, SaveError]:
 #
 
 DeleteError = Union[
-  Error.FILE_NOT_FOUND,
-  Error.FILE_NOT_READY
+  Literal[Error.FILE_NOT_FOUND],
+  Literal[Error.FILE_NOT_READY]
 ]
 
 def delete(fileId: str, authInfo: AuthInfo) -> Union[None, DeleteError]:
@@ -332,9 +332,9 @@ def delete(fileId: str, authInfo: AuthInfo) -> Union[None, DeleteError]:
 FileInfoResponse = FileInfo
 
 FileInfoError = Union[
-  Error.USER_NOT_FOUND,
-  Error.FILE_NOT_FOUND,
-  Error.FILENAME_NOT_SPECIFIC
+  Literal[Error.USER_NOT_FOUND],
+  Literal[Error.FILE_NOT_FOUND],
+  Literal[Error.FILENAME_NOT_SPECIFIC]
 ]
 
 def fileInfo(filename: str, owner: Optional[str], authInfo: AuthInfo) -> Union[FileInfoResponse, FileInfoError]:
@@ -375,7 +375,7 @@ def fileInfoById(fileId: str, authInfo: AuthInfo) -> Union[FileInfoResponse, Fil
 # Files Info
 #
 
-FilesInfoResponse = list[FileInfo]
+FilesInfoResponse = List[FileInfo]
 
 def filesInfo(authInfo: AuthInfo) -> FilesInfoResponse:
   response = requestWithSession("GET",
@@ -388,29 +388,6 @@ def filesInfo(authInfo: AuthInfo) -> FilesInfoResponse:
     return [FileInfoResponse(**fileInfo) for fileInfo in response.json()]
 
 #
-# User Info
-#
-
-@dataclass
-class UserInfoResponse:
-  publicKey: str
-
-UserInfoError = Error.USER_NOT_FOUND
-
-def userInfo(username: str) -> Union[UserInfoResponse, UserInfoError]:
-  userInfoBody = {
-    "username": username
-  }
-  response = requests.post(f"http://{BITBOX_HOST}/api/info/user", json=userInfoBody)
-  if response.status_code != BITBOX_STATUS_OK:
-    if response.text == Error.SERVER_SIDE_ERROR.value:
-      printServerError()
-    else:
-      return Error(response.text)
-  else:
-    return UserInfoResponse(**response.json())
-
-#
 # Log Command
 #
 
@@ -421,6 +398,7 @@ def logCommand(data: str, username: str) -> None:
     "context": CURRENT_CONTEXT
   }
   response = requests.post(f"http://{BITBOX_HOST}/api/log/command", json=logCommandBody)
+  print(response.text)
   if response.status_code != BITBOX_STATUS_OK:
     printServerError()
 

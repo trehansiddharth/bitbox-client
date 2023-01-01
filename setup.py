@@ -5,7 +5,7 @@ setup(
   name="bitbox",
   version=parameters.BITBOX_VERSION,
   description="A command-line mailbox for storing and sharing files",
-  packages=["bitbox"],
+  packages=["bitbox", "bitbox.commands"],
   author="Siddharth Trehan",
   license="MIT",
   long_description=open("README.md").read(),

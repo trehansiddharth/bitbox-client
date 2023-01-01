@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Dict
+from typing import Optional, Callable, Dict, Tuple
 import typer
 import getpass
 import requests
@@ -101,7 +101,7 @@ def attemptWithSession(f: Callable[[Session], requests.Response], session: Sessi
       raise typer.Exit(1)
   return response
 
-def loginUser() -> tuple[UserInfo, Session]:
+def loginUser() -> Tuple[UserInfo, Session]:
   userInfo = getUserInfo()
   if userInfo is None:
     console = Console()

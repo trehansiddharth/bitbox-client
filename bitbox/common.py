@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TypeVar, Dict, Any, Optional, Generic, Literal
+from typing import TypeVar, Dict, Any, Optional, Generic, Literal, List
 import sys
 from rich.console import Console
 from bitbox.parameters import *
@@ -37,7 +37,7 @@ class BasicFileInfo:
 
 @dataclass
 class FileInfo(BasicFileInfo):
-  sharedWith: list[str]
+  sharedWith: List[str]
 
 Session = str
 

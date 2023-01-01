@@ -2,6 +2,7 @@
 .venv-env/
 .mypy_cache/
 __pycache__/
+build/
 *.egg-info
 conda-env.yml
 requirements.txt

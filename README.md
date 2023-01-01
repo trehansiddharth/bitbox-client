@@ -7,7 +7,7 @@ Bitbox is command-line mailbox for storing and sharing files.
 To install the Python package and create the `bitbox` and `bb` executables, run:
 
 ```
-python3 setup.py install
+pip install .
 ```
 
 ## Running
