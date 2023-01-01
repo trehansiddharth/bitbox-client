@@ -398,7 +398,6 @@ def logCommand(data: str, username: str) -> None:
     "context": CURRENT_CONTEXT
   }
   response = requests.post(f"http://{BITBOX_HOST}/api/log/command", json=logCommandBody)
-  print(response.text)
   if response.status_code != BITBOX_STATUS_OK:
     printServerError()
 
