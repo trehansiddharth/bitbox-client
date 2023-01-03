@@ -5,7 +5,6 @@ import requests
 import os
 import json
 import hashlib
-import keyring
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.PublicKey import RSA
 import cryptocode
@@ -23,11 +22,18 @@ def getPersonalKey() -> str:
   password = getpass.getpass("Password: ")
   return getPersonalKeyFromPassword(password)
 
-def getSession(userInfo: UserInfo) -> Optional[str]:
-  return keyring.get_password("bitbox", f"session_{userInfo.username}")
+def getSession() -> Optional[str]:
+  sessionPath = os.path.join(BITBOX_CONFIG_FOLDER, "session.str")
+  if os.path.exists(sessionPath):
+    with open(sessionPath, "r") as f:
+      return f.read()
+  else:
+    return None
 
-def setSession(userInfo: UserInfo, session: str):
-  keyring.set_password("bitbox", f"session_{userInfo.username}", session)
+def setSession(session: str):
+  sessionPath = os.path.join(BITBOX_CONFIG_FOLDER, "session.str")
+  with open(sessionPath, "w") as f:
+    f.write(session)
 
 # Raises: ConfigParseFailed
 def getUserInfo() -> Optional[UserInfo]:
@@ -85,7 +91,7 @@ def attemptWithSession(f: Callable[[Session], requests.Response], session: Sessi
       if personalKey is None:
         personalKey = getPersonalKey()
       session = server.authenticateUser(userInfo, personalKey)
-      setSession(userInfo, session)
+      setSession(session)
       response = f(session)
       if (response.status_code != BITBOX_STATUS_OK):
         if response.text in exceptions:
@@ -108,12 +114,12 @@ def loginUser() -> Tuple[UserInfo, Session]:
     console.print("It looks like you haven't set up bitbox on this computer yet.\n")
     console.print("Run `bitbox setup` to get started!", style="green")
     sys.exit(0)
-  session = getSession(userInfo)
+  session = getSession()
   try:
     if session is None:
       personalKey = getPersonalKey()
       session = server.authenticateUser(userInfo, personalKey)
-      setSession(userInfo, session)
+      setSession(session)
     return userInfo, session
   except Exception as e:
     console = Console()

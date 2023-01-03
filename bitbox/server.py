@@ -436,7 +436,7 @@ def requestWithSession(method: str, url: str, body: Any, authInfo: AuthInfo) -> 
         else:
           raise e
 
-      util.setSession(authInfo.userInfo, authInfo.session)
+      util.setSession(authInfo.session)
       response = requests.request(method, url, json=body, headers={"Cookie": authInfo.session})
       if response.status_code == BITBOX_STATUS_OK:
         return response

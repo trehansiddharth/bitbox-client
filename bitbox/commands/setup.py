@@ -89,9 +89,9 @@ def registerUser():
     userInfoJSON = json.dumps(asdict(userInfo), indent=2)
     f.write(userInfoJSON)
 
-  # Authenticate the user and save the session in the keyring
+  # Authenticate the user and save the session securely
   session = server.authenticateUser(userInfo, personalKey)
-  setSession(userInfo, session)
+  setSession(session)
 
   # Print a success message
   success("\nYou've been successfully registered on BitBox! Get started by running `bitbox --help` to see available commands.")
@@ -156,9 +156,9 @@ def registerClient():
     userInfoJSON = json.dumps(asdict(userInfo), indent=2)
     f.write(userInfoJSON)
   
-  # Authenticate the user and save the session in the keyring
+  # Authenticate the user and save the session securely
   session = server.authenticateUser(userInfo, personalKey)
-  setSession(userInfo, session)
+  setSession(session)
 
   # Print a success message
   console.print("\n[green]You've successfully logged into BitBox! You can now use Bitbox to store, share, and sync files on this machine.[/green]")
