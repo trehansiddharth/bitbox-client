@@ -148,22 +148,22 @@ def humanReadableJSTimestamp(timestamp: int) -> str:
   else:
     return datetime.utcfromtimestamp(timestamp / 1000).strftime("%a, %b %d, %Y")
 
-def printFilesInfo(userInfo: UserInfo, filesInfo: List[FileInfo]) -> None:
+def printFilesInfo(username: str, filesInfo: List[FileInfo]) -> None:
   table = Table()
   table.add_column("Remote Filename")
   table.add_column("Size")
   table.add_column("Last Modified")
   table.add_column("Shared With")
   for fileInfo in filesInfo:
-    if fileInfo.owner != userInfo.username:
+    if fileInfo.owner != username:
       filename = f"@{fileInfo.owner}/{fileInfo.name}"
     else:
       filename = fileInfo.name
     sharedWith = []
-    if (userInfo.username in fileInfo.sharedWith) and (userInfo.username != fileInfo.owner):
+    if (username in fileInfo.sharedWith) and (username != fileInfo.owner):
       sharedWith.append("me")
     for username in fileInfo.sharedWith:
-      if (username != fileInfo.owner) and (username != userInfo.username):
+      if (username != fileInfo.owner) and (username != username):
         sharedWith.append(f"@{username}")
     table.add_row(
       filename,

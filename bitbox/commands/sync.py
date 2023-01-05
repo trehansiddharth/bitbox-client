@@ -44,10 +44,6 @@ def syncFile(authInfo: AuthInfo, file: str, syncRecord : syncModule.SyncRecord, 
     return False
   guard(saveResponse)
 
-  # Request the user's password to decrypt the file key
-  if authInfo.personalKey is None:
-    authInfo.personalKey = getPersonalKey()
-
   # Download the file
   downloadResponse = requests.get(saveResponse.downloadURL)
   if downloadResponse.status_code != 200:
@@ -56,7 +52,7 @@ def syncFile(authInfo: AuthInfo, file: str, syncRecord : syncModule.SyncRecord, 
   
   # Decrypt the file
   downloadFileContents = downloadResponse.text
-  privateKey = getPrivateKey(authInfo.userInfo, authInfo.personalKey)
+  privateKey = fetchPrivateKey(authInfo)
   fileKey = rsaDecrypt(binascii.unhexlify(saveResponse.encryptedKey), privateKey)
   fileContents = Fernet(fileKey).decrypt(downloadFileContents)
 
@@ -84,8 +80,7 @@ def syncFile(authInfo: AuthInfo, file: str, syncRecord : syncModule.SyncRecord, 
 @app.command(short_help="Synchronize all clones in a given path with their remotes")
 def sync(path: str = typer.Argument(".", help="Path to synchronize")):
   # Get user info and try to establish a session
-  userInfo, session = loginUser()
-  authInfo = AuthInfo(userInfo, session)
+  authInfo = loginUser()
 
   # Keep track of how many files have been modified
   modifiedCount = 0

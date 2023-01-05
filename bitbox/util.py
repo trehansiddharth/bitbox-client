@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Dict, Tuple
+from typing import Optional, Callable, Dict, Tuple, Union
 import typer
 import getpass
 import requests
@@ -15,6 +15,9 @@ import sys
 from bitbox.common import *
 from bitbox.errors import *
 
+BITBOX_KEYFILE_PATH = os.path.join(BITBOX_CONFIG_FOLDER, "keyfile.json")
+BITBOX_SESSION_PATH = os.path.join(BITBOX_CONFIG_FOLDER, "session.str")
+
 def getPersonalKeyFromPassword(password: str) -> str:
   return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
@@ -22,55 +25,50 @@ def getPersonalKey() -> str:
   password = getpass.getpass("Password: ")
   return getPersonalKeyFromPassword(password)
 
-def getSession() -> Optional[str]:
-  sessionPath = os.path.join(BITBOX_CONFIG_FOLDER, "session.str")
+def getSession(path: Optional[str] = None) -> Optional[str]:
+  sessionPath = path or BITBOX_SESSION_PATH
   if os.path.exists(sessionPath):
     with open(sessionPath, "r") as f:
       return f.read()
   else:
     return None
 
-def setSession(session: str):
-  sessionPath = os.path.join(BITBOX_CONFIG_FOLDER, "session.str")
+def setSession(session: str, path: Optional[str] = None):
+  sessionPath = path or BITBOX_SESSION_PATH
   with open(sessionPath, "w") as f:
     f.write(session)
 
 # Raises: ConfigParseFailed
-def getUserInfo() -> Optional[UserInfo]:
-  userInfoPath = os.path.join(BITBOX_CONFIG_FOLDER, "userinfo.json")
-  if not os.path.exists(userInfoPath):
+def getKeyInfo(path: Optional[str] = None) -> Optional[KeyInfo]:
+  keyInfoPath = path or BITBOX_KEYFILE_PATH
+  if not os.path.exists(keyInfoPath):
     return None
   try:
-    with open(userInfoPath, "r") as f:
-      userInfoJSON = f.read()
+    with open(keyInfoPath, "r") as f:
+      keyInfoJSON = f.read()
   except Exception as e:
     raise Exception(Error.CONFIG_PARSE_FAILED)
-  return UserInfo(**json.loads(userInfoJSON))
+  return KeyInfo(**json.loads(keyInfoJSON))
+
+def setKeyInfo(keyInfo: KeyInfo, path: Optional[str] = None):
+  keyInfoPath = path or BITBOX_KEYFILE_PATH
+  with open(keyInfoPath, "w") as f:
+    f.write(json.dumps(keyInfo.__dict__, indent=2))
 
 # Raises: ConfigParseFailed
-def getPublicKey(userInfo: UserInfo) -> RSA.RsaKey:
-  publicKeyPath = os.path.join(BITBOX_CONFIG_FOLDER, userInfo.publicKeyPath)
-  try:
-    with open(publicKeyPath, "r") as f:
-      publicKey = f.read()
-  except Exception as e:
-    raise Exception(Error.CONFIG_PARSE_FAILED)
-  return RSA.import_key(publicKey)
+def getPublicKey(keyInfo: KeyInfo) -> RSA.RsaKey:
+  return RSA.import_key(keyInfo.publicKey)
 
 # Raises: ConfigParseFailed, AuthenticationFailed
-def getPrivateKey(userInfo: UserInfo, personalKey: str) -> RSA.RsaKey:
-  privateKeyPath = os.path.join(BITBOX_CONFIG_FOLDER, userInfo.encryptedPrivateKeyPath)
-  try:
-    with open(privateKeyPath, "r") as f:
-      encryptedPrivateKey = f.read()
-    decryptedPrivateKey = cryptocode.decrypt(encryptedPrivateKey, personalKey)
-  except Exception as e:
-    raise Exception(Error.CONFIG_PARSE_FAILED)
-  if decryptedPrivateKey == False:
-    console = Console()
-    console.print("Incorrect password!", style="red")
-    sys.exit(1)
-  return RSA.import_key(decryptedPrivateKey)
+def getPrivateKey(keyInfo: KeyInfo, personalKey: Optional[str] = None) -> RSA.RsaKey:
+  if keyInfo.encrypted:
+    if personalKey == None:
+      raise Exception
+    else:
+      privateKeyStr = cryptocode.decrypt(keyInfo.privateKey, personalKey)
+  else:
+    privateKeyStr = keyInfo.privateKey
+  return RSA.import_key(privateKeyStr)
 
 def rsaEncrypt(data: bytes, publicKey: RSA.RsaKey) -> bytes:
   cipher = PKCS1_OAEP.new(publicKey)
@@ -80,51 +78,60 @@ def rsaDecrypt(data: bytes, privateKey: RSA.RsaKey) -> bytes:
   cipher = PKCS1_OAEP.new(privateKey)
   return cipher.decrypt(data)
 
-# Raises: AuthenticationFailed, UserNotFound, ConfigParseFailed, any Bitbox exception
-# TODO: add exception handling
-def attemptWithSession(f: Callable[[Session], requests.Response], session: Session,
-  userInfo: UserInfo, personalKey: Optional[PersonalKey] = None,
-  exceptions: Optional[Dict[str, Callable[[], None]]] = None) -> requests.Response:
-  response = f(session)
-  if (response.status_code != BITBOX_STATUS_OK):
-    if response.text == Error.AUTHENTICATION_FAILED:
-      if personalKey is None:
-        personalKey = getPersonalKey()
-      session = server.authenticateUser(userInfo, personalKey)
-      setSession(session)
-      response = f(session)
-      if (response.status_code != BITBOX_STATUS_OK):
-        if response.text in exceptions:
-          exceptions[response.text]()
-        else:
-          raise Exception(response.text)
-        raise typer.Exit(1)
-    else:
-      if response.text in exceptions:
-        exceptions[response.text]()
-      else:
-        raise Exception(response.text)
-      raise typer.Exit(1)
-  return response
-
-def loginUser() -> Tuple[UserInfo, Session]:
-  userInfo = getUserInfo()
-  if userInfo is None:
+AuthMethod = Union[
+  Literal['plain-key'],
+  Literal['key-and-password'],
+  Literal['prompt'],
+]
+def loginUser(authMethod: AuthMethod = 'prompt', keyfilePath: Optional[str] = None, password: Optional[str] = None, sessionPath: Optional[str] = None) -> AuthInfo:
+  keyInfo = getKeyInfo(keyfilePath)
+  # TODO: raise error instead of printing message
+  if keyInfo is None:
     console = Console()
     console.print("It looks like you haven't set up bitbox on this computer yet.\n")
     console.print("Run `bitbox setup` to get started!", style="green")
     sys.exit(0)
-  session = getSession()
+
   try:
+    if authMethod == 'plain-key':
+      if keyInfo.encrypted:
+        raise Error.AUTH_METHOD_INVALID
+      decryptKey = RSA.import_key
+    elif authMethod == 'key-and-password':
+      if (password is None) or (not keyInfo.encrypted):
+        raise Error.AUTH_METHOD_INVALID
+      personalKey = getPersonalKeyFromPassword(password)
+      decryptKey = lambda keyStr: RSA.import_key(cryptocode.decrypt(keyStr, personalKey))
+    elif authMethod == 'prompt':
+      if not keyInfo.encrypted:
+        raise Error.AUTH_METHOD_INVALID
+      decryptKey = lambda keyStr: RSA.import_key(cryptocode.decrypt(keyStr, getPersonalKey()))
+    privateKey = None
+    session = getSession(sessionPath)
     if session is None:
-      personalKey = getPersonalKey()
-      session = server.authenticateUser(userInfo, personalKey)
-      setSession(session)
-    return userInfo, session
+      privateKey = decryptKey(keyInfo.privateKey)
+      session = server.establishSession(keyInfo.username, privateKey)
+    return AuthInfo(keyInfo, session, decryptKey, privateKey)
   except Exception as e:
+    # TODO: raise error instead of printing message
     console = Console()
     if e.args[0] == Error.AUTHENTICATION_FAILED:
       console.print("Incorrect password!", style="red")
     else:
       console.print(f"An error occurred: {e}", style="red")
     sys.exit(0)
+
+
+def fetchPrivateKey(authInfo: AuthInfo):
+  # If we've already cached the private key, return it
+  if authInfo.cachedPrivateKey is not None:
+    return authInfo.cachedPrivateKey
+  
+  # Otherwise, get the private key using the decrypt function
+  privateKey = authInfo.decryptPrivateKey(authInfo.keyInfo.privateKey)
+
+  # Save it in the cache
+  authInfo.cachedPrivateKey = privateKey
+
+  # Return it
+  return privateKey

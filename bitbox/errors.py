@@ -20,3 +20,6 @@ class Error(enum.Enum):
   CONFIG_PARSE_FAILED = "config-parse-failed"
   SYNC_EXISTS = "sync-exists"
   SYNC_NOT_FOUND = "sync-not-found"
+  AUTH_METHOD_INVALID = "auth-method-invalid"
+  UPLOAD_ERROR = "upload-error"
+  DOWNLOAD_ERROR = "download-error"

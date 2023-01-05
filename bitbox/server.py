@@ -423,11 +423,9 @@ def requestWithSession(method: str, url: str, body: Any, authInfo: AuthInfo) -> 
   response = requests.request(method, url, json=body, headers={"Cookie": authInfo.session})
   if (response.status_code != BITBOX_STATUS_OK):
     if response.text == Error.AUTHENTICATION_FAILED.value:
-      if authInfo.personalKey is None:
-        authInfo.personalKey = util.getPersonalKey()
-      
+      privateKey = util.fetchPrivateKey(authInfo)
       try:
-        authInfo.session = authenticateUser(authInfo.userInfo, authInfo.personalKey)
+        authInfo.session = establishSession(authInfo.keyInfo.username, privateKey)
       except Exception as e:
         if e.args == (Error.AUTHENTICATION_FAILED,):
           console = Console()
@@ -451,10 +449,8 @@ def requestWithSession(method: str, url: str, body: Any, authInfo: AuthInfo) -> 
   return response
 
 # Raises: AuthenticationFailed, UserNotFound, ConfigParseFailed
-def authenticateUser(userInfo: UserInfo, personalKey: str) -> str:
-  privateKey = util.getPrivateKey(userInfo, personalKey)
-
-  challengeStr = challenge(userInfo.username)
+def establishSession(username: str, privateKey: RSA.RsaKey) -> str:
+  challengeStr = challenge(username)
   guard(challengeStr)
   
   challengeBytes = bytearray.fromhex(challengeStr)
@@ -464,7 +460,7 @@ def authenticateUser(userInfo: UserInfo, personalKey: str) -> str:
     raise Exception(Error.AUTHENTICATION_FAILED)
   answer = binascii.hexlify(answerBytes).decode("utf-8")
 
-  session = login(userInfo.username, answer)
+  session = login(username, answer)
   if isinstance(session, Error):
     raise Exception(session)
   else:

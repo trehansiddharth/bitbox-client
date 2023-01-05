@@ -8,8 +8,7 @@ import bitbox.sync as sync
 @app.command(short_help="Push changes in a local file to its remote copy")
 def update(local: str = typer.Argument(..., help="Path to the local file whose remote should be updated")):
   # Get user info and try to establish a session
-  userInfo, session = loginUser()
-  authInfo = server.AuthInfo(userInfo, session)
+  authInfo = loginUser()
   
   # Check if the file exists and is not a directory
   confirmLocalFileExists(local)
@@ -28,7 +27,7 @@ def update(local: str = typer.Argument(..., help="Path to the local file whose r
   filename = fileInfo.name
 
   # Make sure this user owns the file
-  if (owner != userInfo.username):
+  if (owner != authInfo.keyInfo.username):
     error(f"Only the file owner, @{owner}, has permissions to update remote file '{local}'")
 
   # Read the file and get its hash
@@ -41,12 +40,8 @@ def update(local: str = typer.Argument(..., help="Path to the local file whose r
     warning(f"Local file '{local}' has not changed. No update will be sent to the server.")
     return
   
-  # Get the user's password so we can decrypt the user's private key
-  if authInfo.personalKey is None:
-    authInfo.personalKey = getPersonalKey()
-  
   # Get the user's private key so we can decrypt the file key
-  privateKey = getPrivateKey(userInfo, authInfo.personalKey)
+  privateKey = fetchPrivateKey(authInfo)
   
   # Decrypt the file key
   fileKey = rsaDecrypt(binascii.unhexlify(fileInfo.encryptedKey), privateKey)

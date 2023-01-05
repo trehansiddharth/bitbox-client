@@ -18,8 +18,7 @@ def clone(
     error(f"A local file at '{local}' already exists. Use the `--local` flag to specify a different name for the local file.")
 
   # Get user info and try to establish a session
-  userInfo, session = loginUser()
-  authInfo = server.AuthInfo(userInfo, session)
+  authInfo = loginUser()
 
   # Parse the remote file name and get file information
   owner, filename = parseRemoteFilename(remote, None)
@@ -57,10 +56,6 @@ def clone(
     Error.FILE_NOT_READY: f"Remote file '{renderedRemoteFilename}' is being modified elsewhere. Please try again later.",
   })
 
-  # Request the user's password to decrypt the file key
-  if authInfo.personalKey is None:
-    authInfo.personalKey = getPersonalKey()
-
   # Download the file
   downloadResponse = requests.get(saveResponse.downloadURL)
   if downloadResponse.status_code != 200:
@@ -68,7 +63,7 @@ def clone(
   
   # Decrypt the file
   downloadFileContents = downloadResponse.text
-  privateKey = getPrivateKey(userInfo, authInfo.personalKey)
+  privateKey = fetchPrivateKey(authInfo)
   fileKey = rsaDecrypt(binascii.unhexlify(saveResponse.encryptedKey), privateKey)
   fileContents = Fernet(fileKey).decrypt(downloadFileContents)
 

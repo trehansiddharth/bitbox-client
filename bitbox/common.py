@@ -1,29 +1,32 @@
 from dataclasses import dataclass
-from typing import TypeVar, Dict, Any, Optional, Generic, Literal, List
+from typing import TypeVar, Dict, Any, Optional, Generic, Literal, List, Callable
 import sys
 from rich.console import Console
 from bitbox.parameters import *
 import time
 from bitbox.errors import *
+from Crypto.PublicKey import RSA
 
 # A unique hex string for each time the program is run, used for logging
 CURRENT_CONTEXT = hex(round(time.time() * 1000))[2:]
 
+PersonalKey = str
+Session = str
+
 @dataclass
-class UserInfo:
+class KeyInfo:
   username: str
   clientCreated: int
-  publicKeyPath: str
-  encryptedPrivateKeyPath: str
+  publicKey: str
+  privateKey: str
+  encrypted: bool
 
 @dataclass
 class AuthInfo:
-  userInfo: UserInfo
+  keyInfo: KeyInfo
   session: str
-  personalKey: Optional[str] = None
-
-PersonalKey = str
-Session = str
+  decryptPrivateKey: Callable[[str], RSA.RsaKey]
+  cachedPrivateKey: Optional[RSA.RsaKey]
 
 @dataclass
 class BasicFileInfo:

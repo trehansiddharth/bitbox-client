@@ -14,8 +14,7 @@ def add(
     remote = os.path.basename(local)
 
   # Get user info and try to establish a session
-  userInfo, session = loginUser()
-  authInfo = server.AuthInfo(userInfo, session)
+  authInfo = loginUser()
   
   # Confirm that the local file exists and is not a directory
   confirmLocalFileExists(local)
@@ -44,7 +43,7 @@ def add(
   encryptedFileBytes = Fernet(fileKey).encrypt(fileContents)
   
   # Get the user's public key
-  publicKey = getPublicKey(userInfo)
+  publicKey = getPublicKey(authInfo.keyInfo)
   
   # Encrypt the file key with the user's public key
   personalEncryptedKey = rsaEncrypt(fileKey, publicKey)
@@ -54,7 +53,7 @@ def add(
   prepareStoreResponse = server.prepareStore(remote, len(encryptedFileBytes), fileHash, personalEncryptedKeyHex, authInfo)
   guard(prepareStoreResponse, {
     Error.FILE_TOO_LARGE: f"File {local} is too large to upload. Run `bitbox` to check how much space you have.",
-    Error.FILE_EXISTS: f"A remote file named '@{userInfo.username}/{remote}' already exists. Use the `--remote` flag to specify a different name for the remote file."
+    Error.FILE_EXISTS: f"A remote file named '@{authInfo.keyInfo.username}/{remote}' already exists. Use the `--remote` flag to specify a different name for the remote file."
   })
 
   # Upload the file
@@ -68,4 +67,4 @@ def add(
   sync.createSync(prepareStoreResponse.fileId, fileHash, local)
 
   # Tell the user that the file has been added
-  success(f"Local file {local} has been added to your bitbox as '@{userInfo.username}/{remote}'.")
+  success(f"Local file {local} has been added to your bitbox as '@{authInfo.keyInfo.username}/{remote}'.")

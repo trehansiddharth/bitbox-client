@@ -9,13 +9,12 @@ def share(
   remote: str = typer.Argument(..., help="Name of the remote file to share"),
   recipients: List[str] = typer.Argument(..., help="Usernames of the users to share the file with")):
   # Get user info and try to establish a session
-  userInfo, session = loginUser()
-  authInfo = AuthInfo(userInfo, session)
+  authInfo = loginUser()
 
   # Get the encrypted file key from the server
-  fileInfo = server.fileInfo(remote, userInfo.username, authInfo)
+  fileInfo = server.fileInfo(remote, authInfo.keyInfo.username, authInfo)
   guard(fileInfo, {
-    Error.FILE_NOT_FOUND: f"Remote file '@{userInfo.username}/{remote}' does not exist."
+    Error.FILE_NOT_FOUND: f"Remote file '@{authInfo.keyInfo.username}/{remote}' does not exist."
   })
   fileId = fileInfo.fileId
   encryptedKey = fileInfo.encryptedKey
@@ -36,9 +35,7 @@ def share(
     publicKeys[recipient[1:]] = RSA.import_key(userInfoResponse.publicKey)
 
   # Decrypt the file key
-  if authInfo.personalKey is None:
-    authInfo.personalKey = getPersonalKey()
-  privateKey = getPrivateKey(userInfo, authInfo.personalKey)
+  privateKey = fetchPrivateKey(authInfo)
   decryptedFileKey = rsaDecrypt(binascii.unhexlify(encryptedKey), privateKey)
 
   # Re-encrypt the file key for each recipient

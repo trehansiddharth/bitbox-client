@@ -3,8 +3,7 @@ from bitbox.commands.common import *
 @app.command(short_help="Generate a one-time-code to setup Bitbox on another machine")
 def otc():
   # Get user info and try to establish a session
-  userInfo, session = loginUser()
-  authInfo = AuthInfo(userInfo, session)
+  authInfo = loginUser()
 
   # Generate the one-time-code
   otc = server.generateOTC(authInfo)

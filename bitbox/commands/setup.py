@@ -6,7 +6,7 @@ from bitbox.commands.common import *
 @app.command(short_help="Set up bitbox under a new or existing user")
 def setup():
   # If the config folder already exists, don't let the user set up again
-  if os.path.exists(os.path.join(BITBOX_CONFIG_FOLDER, "userinfo.json")):
+  if os.path.exists(BITBOX_KEYFILE_PATH):
     console.print(f"You've already set up bitbox on this machine! To reconfigure bitbox, delete {BITBOX_CONFIG_FOLDER} and try again.\n")
     console.print("[bold]WARNING: This will delete your private key. It may be wise to move this folder to a different location.[/bold]", style="red")
     raise typer.Exit(code=1)
@@ -64,33 +64,28 @@ def registerUser():
   privateKeyStr = privateKey.export_key().decode("utf-8")
 
   # Encrypt the private key with the personal key
-  encryptedPrivateKey = cryptocode.encrypt(privateKeyStr, personalKey)
+  encryptedPrivateKeyStr = cryptocode.encrypt(privateKeyStr, personalKey)
 
-  # Create a user info object that we will save to disk
-  userInfo = UserInfo(
+  # Create a key info object that we will save to disk
+  keyInfo = KeyInfo(
     username=username,
     clientCreated=int(time.time() * 1000),
-    publicKeyPath=f"{username}.key.public",
-    encryptedPrivateKeyPath=f"{username}.key.private.encrypted")
+    publicKey=publicKeyStr,
+    privateKey=encryptedPrivateKeyStr,
+    encrypted=True)
 
   # Register the user on the server
-  registerUserResponse = server.registerUser(username, publicKeyStr, encryptedPrivateKey)
+  registerUserResponse = server.registerUser(username, publicKeyStr, encryptedPrivateKeyStr)
   guard(registerUserResponse, {
     Error.USER_EXISTS: "That username is already taken. Please try `bitbox setup` again.",
     Error.INVALID_USERNAME: "That username is invalid. Please try `bitbox setup` again."
   })
   
   # Save the user info to disk
-  with open(os.path.join(BITBOX_CONFIG_FOLDER, f"{username}.key.public"), "w") as f:
-    f.write(publicKeyStr)
-  with open(os.path.join(BITBOX_CONFIG_FOLDER, f"{username}.key.private.encrypted"), "w") as f:
-    f.write(encryptedPrivateKey)
-  with open(os.path.join(BITBOX_CONFIG_FOLDER, f"userinfo.json"), "w") as f:
-    userInfoJSON = json.dumps(asdict(userInfo), indent=2)
-    f.write(userInfoJSON)
+  setKeyInfo(keyInfo)
 
   # Authenticate the user and save the session securely
-  session = server.authenticateUser(userInfo, personalKey)
+  session = server.establishSession(keyInfo.username, privateKey)
   setSession(session)
 
   # Print a success message
@@ -143,21 +138,16 @@ def registerClient():
   # If the password was correct, we can now save the user info to disk
   privateKey = RSA.import_key(privateKeyStr)
   publicKey = privateKey.publickey()
-  userInfo = UserInfo(
+  keyInfo = KeyInfo(
     username=username,
     clientCreated=int(time.time() * 1000),
-    publicKeyPath=f"{username}.key.public",
-    encryptedPrivateKeyPath=f"{username}.key.private.encrypted")
-  with open(os.path.join(BITBOX_CONFIG_FOLDER, f"{username}.key.public"), "w") as f:
-    f.write(publicKey.export_key().decode("utf-8"))
-  with open(os.path.join(BITBOX_CONFIG_FOLDER, f"{username}.key.private.encrypted"), "w") as f:
-    f.write(encryptedPrivateKey)
-  with open(os.path.join(BITBOX_CONFIG_FOLDER, f"userinfo.json"), "w") as f:
-    userInfoJSON = json.dumps(asdict(userInfo), indent=2)
-    f.write(userInfoJSON)
+    publicKey=publicKey.export_key().decode("utf-8"),
+    privateKey=encryptedPrivateKey,
+    encrypted=True)
+  setKeyInfo(keyInfo)
   
   # Authenticate the user and save the session securely
-  session = server.authenticateUser(userInfo, personalKey)
+  session = server.establishSession(keyInfo.username, privateKey)
   setSession(session)
 
   # Print a success message
