@@ -1,11 +1,18 @@
 from bitbox.server import \
   BitboxException, \
   InvalidVersionException, \
-  AuthenticationException
+  AuthenticationException, \
+  UserNotFoundException
 
-class UserNotFoundException(Exception):
+class UserExistsException(Exception):
   def __init__(self, username):
     self.username = username
+
+class InvalidUsernameException(Exception):
+  pass
+
+class InvalidPublicKeyException(Exception):
+  pass
 
 class FileNotFoundException(Exception):
   def __init__(self, filename):

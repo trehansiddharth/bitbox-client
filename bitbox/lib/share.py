@@ -17,6 +17,7 @@ def share(filename: str, recipients: List[str], authInfo: AuthInfo):
   :raises UserNotFoundException: If a recipient doesn't exist.
   :raises DecryptionException: If the password to decrypt the private key is incorrect.
   :raises AuthenticationException: If login failed with the server.
+  :raises InvalidVersionException: If the server no longer supports the current version of Bitbox.
   :raises BitboxException: Any other exception indicating an bug in Bitbox.
   """
 

@@ -12,9 +12,11 @@ def login(keyInfo: KeyInfo, password: Optional[str], session: Optional[Session] 
   :param password: The password to decrypt the private key with. If None and the key is encrypted,
     the password will be prompted for. If the key is unencrypted, then no password is necessary.
   :param session: The session to use. If None, a new session will be created.
-  
+
   :raises DecryptionException: If the password to decrypt the private key is incorrect.
   :raises AuthenticationException: If login failed with the server.
+  :raises InvalidVersionException: If the server no longer supports the current version of Bitbox.
+  :raises BitboxException: Any other exception indicating an bug in Bitbox.
 
   :return: The auth info.
   """

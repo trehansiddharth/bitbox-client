@@ -20,6 +20,7 @@ def upload(blob: bytes, filename: str, authInfo: AuthInfo, overwrite: bool = Fal
   :raises UploadException: If the upload failed.
   :raises DecryptionException: If the password to decrypt the private key is incorrect.
   :raises AuthenticationException: If login failed with the server.
+  :raises InvalidVersionException: If the server no longer supports the current version of Bitbox.
   :raises BitboxException: Any other exception indicating an bug in Bitbox.
   """
 

@@ -19,6 +19,7 @@ def recover(username: str, otc: str, password: Optional[str] = None) -> Tuple[Ke
   :raises InvalidOTCException: If the one-time code is invalid or incorrect.
   :raises DecryptionException: If the password to decrypt the private key is incorrect.
   :raises AuthenticationException: If login failed with the server.
+  :raises InvalidVersionException: If the server no longer supports the current version of Bitbox.
   :raises BitboxException: Any other exception indicating an bug in Bitbox.
 
   :return: A tuple containing the key info and the private key.

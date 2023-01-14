@@ -19,6 +19,10 @@ def download(filename: str, owner: str, authInfo: AuthInfo) -> bytes:
   :raises UserNotFoundException: If the owner doesn't exist.
   :raises FileNotReadyException: If the file is not ready to be downloaded.
   :raises DownloadException: If the download failed.
+  :raises DecryptionException: If the password to decrypt the private key is incorrect.
+  :raises AuthenticationException: If login failed with the server.
+  :raises InvalidVersionException: If the server no longer supports the current version of Bitbox.
+  :raises BitboxException: Any other exception indicating an bug in Bitbox.
 
   :returns: The decrypted blob.
   """

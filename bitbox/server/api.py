@@ -21,6 +21,10 @@ class InvalidVersionException(Exception):
 class AuthenticationException(Exception):
   pass
 
+class UserNotFoundException(Exception):
+  def __init__(self, username):
+    self.username = username
+
 #
 # API Errors
 #
@@ -79,12 +83,17 @@ def establishSession(username: str, privateKey: RSA.RsaKey) -> str:
   try:
     answerBytes = encryption.rsaDecrypt(challengeBytes, privateKey)
   except:
-    raise Exception(Error.AUTHENTICATION_FAILED)
+    raise AuthenticationException()
   answer = binascii.hexlify(answerBytes).decode("utf-8")
 
   session = login(username, answer)
   if isinstance(session, Error):
-    raise Exception(session)
+    if session == Error.AUTHENTICATION_FAILED:
+      raise AuthenticationException()
+    elif session == Error.USER_NOT_FOUND:
+      raise UserNotFoundException(username)
+    else:
+      raise BitboxException(session)
   else:
     return session
 
