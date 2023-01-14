@@ -34,7 +34,7 @@ def rsaDecrypt(data: bytes, privateKey: RSA.RsaKey) -> bytes:
   cipher = PKCS1_OAEP.new(privateKey)
   return cipher.decrypt(data)
 
-class StreamEncryptor:
+class StreamOperator:
   key: bytes
   __state: bytes
   __slot = 0
@@ -43,29 +43,26 @@ class StreamEncryptor:
     self.key = hashlib.sha256(key).digest()
     self.__state = self.key
   
-  def encrypt(self, data: bytes) -> bytes:
-    output = "".encode()
-    for i in range(len(data)):
-      output += data[i] ^ self.__state[self.__slot]
-      self.__state[self.__slot] = data[i]
-      self.__state = hashlib.sha256(self.__state).digest()
-      self.__slot = (self.__slot + 1) % len(self.__state)
-    return output
-
-class StreamDecryptor:
-  key: bytes
-  __state: bytes
-  __slot = 0
-
-  def __init__(self, key: bytes):
-    self.key = hashlib.sha256(key).digest()
-    self.__state = self.key
+  def _getState(self) -> int:
+    return self.__state[self.__slot]
   
-  def decrypt(self, data: bytes) -> bytes:
-    output = "".encode()
-    for i in range(len(data)):
-      output += data[i] ^ self.__state[self.__slot]
-      self.__state[self.__slot] = output[i]
-      self.__state = hashlib.sha256(self.__state).digest()
-      self.__slot = (self.__slot + 1) % len(self.__state)
-    return output
+  def _rotateState(self, data: int) -> None:
+    self.__state = self.__state[:self.__slot] + bytes([data]) + self.__state[self.__slot + 1:]
+    self.__state = hashlib.sha256(self.__state).digest()
+    self.__slot = (self.__slot + 1) % len(self.__state)
+
+class StreamEncryptor(StreamOperator):
+  def encrypt(self, decrypted: bytes) -> bytes:
+    encrypted = []
+    for i in range(len(decrypted)):
+      encrypted.append(decrypted[i] ^ self._getState())
+      self._rotateState(decrypted[i])
+    return bytes(encrypted)
+
+class StreamDecryptor(StreamOperator):
+  def decrypt(self, encrypted: bytes) -> bytes:
+    decrypted = []
+    for i in range(len(encrypted)):
+      decrypted.append(encrypted[i] ^ self._getState())
+      self._rotateState(decrypted[i])
+    return bytes(decrypted)
