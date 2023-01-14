@@ -17,7 +17,7 @@ def share(
   # Get the encrypted file key from the server
   fileInfo = server.fileInfo(remote, authInfo.keyInfo.username, authInfo)
   guard(fileInfo, {
-    Error.FILE_NOT_FOUND: f"Remote file '@{authInfo.keyInfo.username}/{remote}' does not exist."
+    server.Error.FILE_NOT_FOUND: f"Remote file '@{authInfo.keyInfo.username}/{remote}' does not exist."
   })
   fileId = fileInfo.fileId
   encryptedKey = fileInfo.encryptedKey
@@ -33,7 +33,7 @@ def share(
     # Get the public key of the recipient
     userInfoResponse = server.userInfo(recipient[1:])
     guard(userInfoResponse, {
-      Error.USER_NOT_FOUND: f"User {recipient} does not exist."
+      server.Error.USER_NOT_FOUND: f"User {recipient} does not exist."
     })
     publicKeys[recipient[1:]] = RSA.import_key(userInfoResponse.publicKey)
 

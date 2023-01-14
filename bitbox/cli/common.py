@@ -1,7 +1,7 @@
 from bitbox.parameters import *
 from bitbox.encryption import *
 from bitbox.common import *
-from bitbox.server import Error
+import bitbox.server as server
 from bitbox.cli.otc_dict import otcDict
 import bitbox.lib as lib
 import time
@@ -13,6 +13,7 @@ import json
 import re
 from rich.console import Console
 from rich.table import Table
+from rich.prompt import Prompt
 import enum
 from typing import Optional, List, Any, Dict
 from datetime import datetime
@@ -110,7 +111,7 @@ class Config:
       return lib.login(keyInfo, None, session=session)
     except Exception as e:
       # Print an error message if login fails
-      if e.args[0] == Error.AUTHENTICATION_FAILED:
+      if e.args[0] == server.Error.AUTHENTICATION_FAILED:
         error("Incorrect password!")
       else:
         error(f"An error occurred: {e}")
@@ -148,6 +149,41 @@ def error(message: str):
 #
 # Utility functions
 #
+
+def getValidUsername() -> str:
+  # Loop until we get a valid username
+  while True:
+    # Prompt for a username
+    username = Prompt.ask("[bold]Pick a username[/bold]")
+
+    # Check whether the username is valid
+    if re.match(BITBOX_USERNAME_REGEX, username):
+      # Check whether the username already exists
+      userInfo = server.userInfo(username)
+      if isinstance(userInfo, server.Error):
+        break
+      else:
+        warning("That username is already taken.")
+    else:
+      warning("Usernames must be alphanumeric and be at least 3 characters long.")
+  
+  # Return the username
+  return username
+
+def getValidPassword() -> str:
+  # Loop until we get a valid password
+  while True:
+    # Prompt for a password
+    password = Prompt.ask("[bold]Pick a password[/bold]", password=True)
+
+    # Check whether the password is valid
+    if len(password) >= 8:
+      break
+    else:
+      warning("Passwords must be at least 8 characters long.")
+  
+  # Return the password
+  return password
 
 def confirmLocalFileExists(file: str):
   if (not os.path.isfile(file)):
@@ -266,7 +302,7 @@ def createOTC() -> str:
   return " ".join(otcWords).lower()
 
 def guard(value: Any, exceptions: Dict[str, str] = {}) -> None:
-  if not isinstance(value, Error):
+  if not isinstance(value, server.Error):
     return
   console = Console()
   console.print(f"ERROR: {exceptions[value] if value in exceptions else value}", style="red")

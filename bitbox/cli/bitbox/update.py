@@ -25,7 +25,7 @@ def update(local: str = typer.Argument(..., help="Path to the local file whose r
   # Get the file information from the server
   fileInfo = server.fileInfoById(syncRecord.fileId, authInfo)
   guard(fileInfo, {
-    Error.FILE_NOT_FOUND: f"The remote for local file '{local}' has been deleted from your bitbox. It can no longer be updated."
+    server.Error.FILE_NOT_FOUND: f"The remote for local file '{local}' has been deleted from your bitbox. It can no longer be updated."
   })
   owner = fileInfo.owner
   filename = fileInfo.name
@@ -56,8 +56,8 @@ def update(local: str = typer.Argument(..., help="Path to the local file whose r
   # Send a request to the server to update the file, and grab the upload URL
   prepareUpdateResponse = server.prepareUpdate(fileInfo.fileId, len(encryptedFileBytes), fileHash, authInfo)
   guard(prepareUpdateResponse, {
-    Error.FILE_TOO_LARGE: f"File {local} is too large to upload. Run `bitbox` to check how much space you have.",
-    Error.FILE_NOT_READY: f"Remote file '@{owner}/{filename}' is being modified elswhere. Try again later."
+    server.Error.FILE_TOO_LARGE: f"File {local} is too large to upload. Run `bitbox` to check how much space you have.",
+    server.Error.FILE_NOT_READY: f"Remote file '@{owner}/{filename}' is being modified elswhere. Try again later."
   })
   
   # Upload the file

@@ -51,10 +51,12 @@ bb paste
 
 And `myfile.txt` will appear in the current directory.
 
-To set up `bb` across multiple machines, there is an authorization process. You need to obtain a one-time-code from one of the machines that you wish to link your clipboard to and paste it into the new machine. On the new machine you want to set up, run:
+The first time you run `bb` there is a account creation process. You can choose a username if you like, but it will also just create a new random username for you if you don't care. It's extremely easy to get set up, and creating an account allows you to log in and share clipboards across multiple machines.
+
+To set up `bb` across multiple machines, you need to obtain a one-time-code from one of the machines that you're logged in on and paste it into the new machine. On the new machine you want to set up, run:
 
 ```bash
-bb link
+bb login
 ```
 
 This will ask you to run the following command on an existing machine:
@@ -63,4 +65,4 @@ This will ask you to run the following command on an existing machine:
 bb authorize
 ```
 
-And copy the username and one-time-code you see there into the prompts in the new machine. Once you've completed this process successfully, the two clipboards will be linked, and you can copy content with one and paste with the other!
+Copy the username and one-time-code you see there into the prompts in the new machine. Once you've completed this process successfully, the two clipboards will be linked, and you can copy content with one and paste with the other!

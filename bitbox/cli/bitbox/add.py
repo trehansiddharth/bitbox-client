@@ -28,7 +28,7 @@ def add(
   if (existingSyncRecord is not None):
     # Confirm that the remote file still exists
     fileInfo = server.fileInfoById(existingSyncRecord.fileId, authInfo)
-    if isinstance(fileInfo, Error):
+    if isinstance(fileInfo, server.Error):
       # If the remote file no longer exists, delete the sync record
       syncinfo.deleteSyncsByRemote(existingSyncRecord.fileId)
     else:
@@ -56,8 +56,8 @@ def add(
   # Tell the server we want to add this file, and get the file ID and URL to upload to
   prepareStoreResponse = server.prepareStore(remote, len(encryptedFileBytes), fileHash, personalEncryptedKeyHex, authInfo)
   guard(prepareStoreResponse, {
-    Error.FILE_TOO_LARGE: f"File {local} is too large to upload. Run `bitbox` to check how much space you have.",
-    Error.FILE_EXISTS: f"A remote file named '@{authInfo.keyInfo.username}/{remote}' already exists. Use the `--remote` flag to specify a different name for the remote file."
+    server.Error.FILE_TOO_LARGE: f"File {local} is too large to upload. Run `bitbox` to check how much space you have.",
+    server.Error.FILE_EXISTS: f"A remote file named '@{authInfo.keyInfo.username}/{remote}' already exists. Use the `--remote` flag to specify a different name for the remote file."
   })
 
   # Upload the file

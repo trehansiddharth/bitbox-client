@@ -13,7 +13,7 @@ def delete(remote: str = typer.Argument(..., help="Name of the remote file to de
   filename = remote
   fileInfo = server.fileInfo(remote, authInfo.keyInfo.username, authInfo)
   guard(fileInfo, {
-    Error.FILE_NOT_FOUND: f"Remote file '@{owner}/{filename}' does not exist.",
+    server.Error.FILE_NOT_FOUND: f"Remote file '@{owner}/{filename}' does not exist.",
   })
   fileId = fileInfo.fileId
 

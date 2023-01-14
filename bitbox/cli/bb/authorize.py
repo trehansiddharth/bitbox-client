@@ -2,7 +2,7 @@ from bitbox.cli.bb.common import *
 from bitbox.cli import *
 import bitbox.lib as lib
 
-@app.command(short_help="Authorize another client to become permanently linked to this clipboard")
+@app.command(short_help="Authorize another client to log in to your account")
 def authorize():
   # Get user info and try to establish a session
   authInfo = config.load()
@@ -21,7 +21,7 @@ def authorize():
 
   # Print the one-time-code
   console.print(f"[bold]Your one-time-code is:[/bold] [green]{otc}[/green]\n")
-  console.print("On the machine you want to link, run [green]`bb link`[/green] and enter the above code and username when prompted.")
+  console.print("On the machine you want to log in from, run [green]`bb login`[/green] and enter the above username and code when prompted.")
 
   # Save the session
   config.setSession(authInfo.session)

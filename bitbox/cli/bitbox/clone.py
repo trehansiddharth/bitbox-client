@@ -32,9 +32,9 @@ def clone(
   fileInfo = server.fileInfo(filename, owner, authInfo)
   renderedRemoteFilename = renderRemoteFilename(filename, owner)
   guard(fileInfo, {
-    Error.FILE_NOT_FOUND: f"Remote file '{renderedRemoteFilename}' does not exist.",
-    Error.USER_NOT_FOUND: f"User '@{owner}' does not exist.",
-    Error.FILENAME_NOT_SPECIFIC: f"There are multiple remote files named '{filename}'. Please specify the file owner using the '@someuser/somefile' syntax."
+    server.Error.FILE_NOT_FOUND: f"Remote file '{renderedRemoteFilename}' does not exist.",
+    server.Error.USER_NOT_FOUND: f"User '@{owner}' does not exist.",
+    server.Error.FILENAME_NOT_SPECIFIC: f"There are multiple remote files named '{filename}'. Please specify the file owner using the '@someuser/somefile' syntax."
   })
   fileId = fileInfo.fileId
   owner = fileInfo.owner
@@ -56,8 +56,8 @@ def clone(
   # Otherwise, we need to download the file from the server
   saveResponse = server.save(fileId, authInfo)
   guard(saveResponse, {
-    Error.FILE_NOT_FOUND: f"Remote file '{renderedRemoteFilename}' does not exist.",
-    Error.FILE_NOT_READY: f"Remote file '{renderedRemoteFilename}' is being modified elsewhere. Please try again later.",
+    server.Error.FILE_NOT_FOUND: f"Remote file '{renderedRemoteFilename}' does not exist.",
+    server.Error.FILE_NOT_READY: f"Remote file '{renderedRemoteFilename}' is being modified elsewhere. Please try again later.",
   })
 
   # Download the file

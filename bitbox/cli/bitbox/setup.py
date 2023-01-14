@@ -6,45 +6,6 @@ from bitbox.cli.otc_dict import otcDict
 from rich.prompt import Prompt, Confirm
 
 #
-# Utility functions
-#
-
-def getValidUsername() -> str:
-  # Loop until we get a valid username
-  while True:
-    # Prompt for a username
-    username = Prompt.ask("[bold]Pick a username.[/bold] This will identify you to other Bitbox users")
-
-    # Check whether the username is valid
-    if re.match(BITBOX_USERNAME_REGEX, username):
-      # Check whether the username already exists
-      userInfo = server.userInfo(username)
-      if isinstance(userInfo, Error):
-        break
-      else:
-        warning("That username is already taken.")
-    else:
-      warning("Usernames must be alphanumeric and be at least 3 characters long.")
-  
-  # Return the username
-  return username
-
-def getValidPassword() -> str:
-  # Loop until we get a valid password
-  while True:
-    # Prompt for a password
-    password = Prompt.ask("[bold]Pick a password.[/bold] This will be used to unlock your private key on configured machines", password=True)
-
-    # Check whether the password is valid
-    if len(password) >= 8:
-      break
-    else:
-      warning("Passwords must be at least 8 characters long.")
-  
-  # Return the password
-  return password
-
-#
 # Setup command
 #
 
@@ -104,7 +65,7 @@ def registerClient():
   username = Prompt.ask("Username")
   existingUserInfo = server.userInfo(username)
   guard(existingUserInfo, {
-    Error.USER_NOT_FOUND: "That username does not exist. Did you mean to set up a new user account?"
+    server.Error.USER_NOT_FOUND: "That username does not exist. Did you mean to set up a new user account?"
   })
 
   # Have the user enter their one-time-code

@@ -17,7 +17,7 @@ def syncFile(authInfo: AuthInfo, file: str, syncRecord : syncinfo.SyncRecord, er
   # Get the latest file info from the server
   fileId = syncRecord.fileId
   serverFileInfo = server.fileInfoById(fileId, authInfo)
-  if (isinstance(serverFileInfo, Error) and serverFileInfo == Error.FILE_NOT_FOUND):
+  if (isinstance(serverFileInfo, server.Error) and serverFileInfo == server.Error.FILE_NOT_FOUND):
     syncinfo.deleteSyncsByRemote(fileId)
     print(f"The remote for local file '{file}' has been deleted from your bitbox. It can no longer be synchronized.", mode=errMode)
     return False
@@ -44,7 +44,7 @@ def syncFile(authInfo: AuthInfo, file: str, syncRecord : syncinfo.SyncRecord, er
   
   # Get a download link from the server
   saveResponse = server.save(fileId, authInfo)
-  if (isinstance(saveResponse, Error) and saveResponse == Error.FILE_NOT_READY):
+  if (isinstance(saveResponse, server.Error) and saveResponse == server.Error.FILE_NOT_READY):
     warning(f"Skipping local file '{file}' because its remote at '@{owner}/{filename}' is being modified elsewhere. Try synchronizing this file later.")
     return False
   guard(saveResponse)
