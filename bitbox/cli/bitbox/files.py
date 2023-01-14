@@ -5,7 +5,7 @@ import bitbox.server as server
 @app.command(short_help="List all files in your bitbox")
 def files():
   # Get user info and try to establish a session
-  authInfo = handleLoginUser()
+  authInfo = config.load()
 
   # Get files info
   filesInfo = server.filesInfo(authInfo)
@@ -14,4 +14,4 @@ def files():
   printFilesInfo(authInfo.keyInfo.username, filesInfo)
 
   # Save the session back onto the disk
-  setSession(authInfo.session)
+  config.setSession(authInfo.session)

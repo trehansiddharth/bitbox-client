@@ -1,7 +1,7 @@
 from bitbox.cli.bitbox.common import *
 from bitbox.cli import *
 import bitbox.server as server
-import bitbox.cli.sync as syncModule
+import bitbox.cli.bitbox.syncinfo as syncinfo
 from rich.prompt import Confirm
 import binascii
 from cryptography.fernet import Fernet
@@ -10,7 +10,7 @@ from cryptography.fernet import Fernet
 # Utility functions
 #
 
-def syncFile(authInfo: AuthInfo, file: str, syncRecord : syncModule.SyncRecord, errMode: PrintMode = PrintMode.WARNING) -> bool:
+def syncFile(authInfo: AuthInfo, file: str, syncRecord : syncinfo.SyncRecord, errMode: PrintMode = PrintMode.WARNING) -> bool:
   # Get the has of the last pull
   lastPullHash = syncRecord.lastHash
 
@@ -18,7 +18,7 @@ def syncFile(authInfo: AuthInfo, file: str, syncRecord : syncModule.SyncRecord, 
   fileId = syncRecord.fileId
   serverFileInfo = server.fileInfoById(fileId, authInfo)
   if (isinstance(serverFileInfo, Error) and serverFileInfo == Error.FILE_NOT_FOUND):
-    syncModule.deleteSyncsByRemote(fileId)
+    syncinfo.deleteSyncsByRemote(fileId)
     print(f"The remote for local file '{file}' has been deleted from your bitbox. It can no longer be synchronized.", mode=errMode)
     return False
   guard(serverFileInfo)
@@ -72,7 +72,7 @@ def syncFile(authInfo: AuthInfo, file: str, syncRecord : syncModule.SyncRecord, 
     f.write(fileContents)
   
   # Update the sync record
-  syncModule.updateSync(file, saveResponse.hash)
+  syncinfo.updateSync(file, saveResponse.hash)
 
   # Print a success message
   console.print(f"Local file '{file}' synchronized with its remote at '@{owner}/{filename}'.")
@@ -85,7 +85,7 @@ def syncFile(authInfo: AuthInfo, file: str, syncRecord : syncModule.SyncRecord, 
 @app.command(short_help="Synchronize all clones in a given path with their remotes")
 def sync(path: str = typer.Argument(".", help="Path to synchronize")):
   # Get user info and try to establish a session
-  authInfo = handleLoginUser()
+  authInfo = config.load()
 
   # Keep track of how many files have been modified
   modifiedCount = 0
@@ -98,7 +98,7 @@ def sync(path: str = typer.Argument(".", help="Path to synchronize")):
       for fileName in fileNames:
         # Check if the file is an existing sync point
         file = os.path.join(root, fileName)
-        syncRecord = syncModule.lookupSync(file)
+        syncRecord = syncinfo.lookupSync(file)
 
         # If it is, add it to the list of files to sync
         if syncRecord is not None:
@@ -116,7 +116,7 @@ def sync(path: str = typer.Argument(".", help="Path to synchronize")):
       error(f"Local path '{path}' does not exist.")
 
     # Check if the file is an existing sync point
-    syncRecord = syncModule.lookupSync(path)
+    syncRecord = syncinfo.lookupSync(path)
 
     # Print an error message if the file is not a sync point, otherwise pull changes
     # from the server
@@ -129,4 +129,4 @@ def sync(path: str = typer.Argument(".", help="Path to synchronize")):
   success(f"\nSync successful: {modifiedCount} files modified.")
 
   # Save the session back onto the disk
-  setSession(authInfo.session)
+  config.setSession(authInfo.session)

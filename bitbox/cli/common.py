@@ -22,14 +22,13 @@ import sys
 # Parameters
 #
 
-BITBOX_CONFIG_FOLDER = os.environ.get("BITBOX_CONFIG_FOLDER") or os.path.join(os.path.expanduser("~"), ".bitbox")
-BITBOX_KEYFILE_PATH = os.path.join(BITBOX_CONFIG_FOLDER, "keyfile.json")
-BITBOX_SESSION_PATH = os.path.join(BITBOX_CONFIG_FOLDER, "session.str")
+BITBOX_KEYFILE_FILENAME = "keyfile.json"
+BITBOX_SESSION_FILENAME = "session.str"
+BITBOX_SYNCS_FOLDERNAME = "syncs"
+BITBOX_SYNCINFO_FILENAME = "syncinfo.json"
 OTC_WORDS = 6
 BITBOX_USERNAME_REGEX = r"^[a-z0-9]+$"
 BITBOX_FILENAME_REGEX = r"^@[a-z0-9]+\/[^\/\r\n ]+$"
-BITBOX_SYNCS_FOLDER = os.path.join(BITBOX_CONFIG_FOLDER, "syncs")
-BITBOX_SYNC_INFO_PATH = os.path.join(BITBOX_CONFIG_FOLDER, "syncinfo.json")
 
 #
 # Global variables
@@ -48,46 +47,73 @@ class ConfigParseException(Exception):
     self.message = message
 
 #
-# Configuration
+# Config
 #
 
-def getSession(path: Optional[str] = None) -> Optional[Session]:
-  try:
-    sessionPath = path or BITBOX_SESSION_PATH
-    if os.path.exists(sessionPath):
-      with open(sessionPath, "r") as f:
-        return f.read()
-    else:
+class Config:
+  __configFolder: str
+
+  def __init__(self, configFolder: str):
+    self.__configFolder = configFolder
+
+  def getSession(self) -> Optional[Session]:
+    try:
+      sessionPath = os.path.join(self.__configFolder, BITBOX_SESSION_FILENAME)
+      if os.path.exists(sessionPath):
+        with open(sessionPath, "r") as f:
+          return f.read()
+      else:
+        return None
+    except Exception as e:
+      raise ConfigParseException(sessionPath, e)
+
+  def setSession(self, session: Session):
+    try:
+      sessionPath = os.path.join(self.__configFolder, BITBOX_SESSION_FILENAME)
+      with open(sessionPath, "w") as f:
+        f.write(session)
+    except Exception as e:
+      raise ConfigParseException(sessionPath, e)
+
+  def getKeyInfo(self) -> Optional[KeyInfo]:
+    keyInfoPath = os.path.join(self.__configFolder, BITBOX_KEYFILE_FILENAME)
+    if not os.path.exists(keyInfoPath):
       return None
-  except Exception as e:
-    raise ConfigParseException(BITBOX_SESSION_PATH, e)
+    try:
+      with open(keyInfoPath, "r") as f:
+        keyInfoJSON = f.read()
+    except Exception as e:
+      raise ConfigParseException(keyInfoPath, e)
+    return KeyInfo(**json.loads(keyInfoJSON))
 
-def setSession(session: Session, path: Optional[str] = None):
-  try:
-    sessionPath = path or BITBOX_SESSION_PATH
-    with open(sessionPath, "w") as f:
-      f.write(session)
-  except Exception as e:
-    raise ConfigParseException(BITBOX_SESSION_PATH, e)
+  def setKeyInfo(self, keyInfo: KeyInfo):
+    try:
+      keyInfoPath = os.path.join(self.__configFolder, BITBOX_KEYFILE_FILENAME)
+      with open(keyInfoPath, "w") as f:
+        f.write(json.dumps(keyInfo.__dict__, indent=2))
+    except Exception as e:
+      raise ConfigParseException(keyInfoPath, e)
 
-def getKeyInfo(path: Optional[str] = None) -> Optional[KeyInfo]:
-  keyInfoPath = path or BITBOX_KEYFILE_PATH
-  if not os.path.exists(keyInfoPath):
-    return None
-  try:
-    with open(keyInfoPath, "r") as f:
-      keyInfoJSON = f.read()
-  except Exception as e:
-    raise ConfigParseException(BITBOX_KEYFILE_PATH, e)
-  return KeyInfo(**json.loads(keyInfoJSON))
+  def load(self) -> AuthInfo:
+    # Get key info
+    keyInfo = self.getKeyInfo()
+    if (not keyInfo):
+      console.print("It looks like you haven't set up bitbox on this computer yet.\n")
+      console.print("Run `bitbox setup` to get started!", style="green")
+      typer.Exit()
 
-def setKeyInfo(keyInfo: KeyInfo, path: Optional[str] = None):
-  try:
-    keyInfoPath = path or BITBOX_KEYFILE_PATH
-    with open(keyInfoPath, "w") as f:
-      f.write(json.dumps(keyInfo.__dict__, indent=2))
-  except Exception as e:
-    raise ConfigParseException(BITBOX_KEYFILE_PATH, e)
+    # Get existing session, if any
+    session = self.getSession()
+
+    # Try to login with the key info and session
+    try:
+      return lib.login(keyInfo, None, session=session)
+    except Exception as e:
+      # Print an error message if login fails
+      if e.args[0] == Error.AUTHENTICATION_FAILED:
+        error("Incorrect password!")
+      else:
+        error(f"An error occurred: {e}")
 
 #
 # Printing
@@ -122,27 +148,6 @@ def error(message: str):
 #
 # Utility functions
 #
-
-def handleLoginUser() -> AuthInfo:
-  # Get key info
-  keyInfo = getKeyInfo()
-  if (not keyInfo):
-    console.print("It looks like you haven't set up bitbox on this computer yet.\n")
-    console.print("Run `bitbox setup` to get started!", style="green")
-    typer.Exit()
-  
-  # Get existing session, if any
-  session = getSession()
-
-  # Try to login with the key info and session
-  try:
-    return lib.login(keyInfo, None, session=session)
-  except Exception as e:
-    # Print an error message if login fails
-    if e.args[0] == Error.AUTHENTICATION_FAILED:
-      error("Incorrect password!")
-    else:
-      error(f"An error occurred: {e}")
 
 def confirmLocalFileExists(file: str):
   if (not os.path.isfile(file)):

@@ -12,7 +12,7 @@ def share(
   remote: str = typer.Argument(..., help="Name of the remote file to share"),
   recipients: List[str] = typer.Argument(..., help="Usernames of the users to share the file with")):
   # Get user info and try to establish a session
-  authInfo = handleLoginUser()
+  authInfo = config.load()
 
   # Get the encrypted file key from the server
   fileInfo = server.fileInfo(remote, authInfo.keyInfo.username, authInfo)
@@ -56,4 +56,4 @@ def share(
   success(f"{remote} has been shared with: {', '.join(recipients)}")
 
   # Save the session back onto the disk
-  setSession(authInfo.session)
+  config.setSession(authInfo.session)

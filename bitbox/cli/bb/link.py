@@ -25,11 +25,11 @@ def link():
     error("Your password is incorrect. Please try `bb link` again with a new code.")
   
   # Save the user info to disk
-  setKeyInfo(keyInfo)
+  config.setKeyInfo(keyInfo)
 
   # Authenticate the user and save the session securely
   session = server.establishSession(keyInfo.username, privateKey)
-  setSession(session)
+  config.setSession(session)
 
   # Print a success message
   success(f"\nThis clipboard has been successfully linked to '{username}'.")

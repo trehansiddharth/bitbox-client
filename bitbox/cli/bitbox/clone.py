@@ -1,6 +1,6 @@
 from bitbox.cli.bitbox.common import *
 from bitbox.cli import *
-import bitbox.cli.sync as sync
+import bitbox.cli.bitbox.syncinfo as syncinfo
 import bitbox.server as server
 from cryptography.fernet import Fernet
 import binascii
@@ -22,7 +22,7 @@ def clone(
     error(f"A local file at '{local}' already exists. Use the `--local` flag to specify a different name for the local file.")
 
   # Get user info and try to establish a session
-  authInfo = handleLoginUser()
+  authInfo = config.load()
 
   # Parse the remote file name and get file information
   owner, filename = parseRemoteFilename(remote, None)
@@ -42,12 +42,12 @@ def clone(
   renderedRemoteFilename = renderRemoteFilename(filename, owner)
 
   # Check the sync record to see if we already have a copy of this file
-  syncRecord = sync.lookupSyncByRemote(fileId)
+  syncRecord = syncinfo.lookupSyncByRemote(fileId)
   if (syncRecord != None):
     # If we do, check if it's the latest version by seeing if the hashes match
     if (syncRecord.lastHash == fileHash):
       # If the hashes match, we can just copy the file and create a hardlink to it
-      sync.copySync(syncRecord.syncId, remote)
+      syncinfo.copySync(syncRecord.syncId, remote)
 
       # Print a success message and exit
       success(f"Remote file '{renderedRemoteFilename}' has been cloned onto your local machine as '{local}'.")
@@ -81,11 +81,11 @@ def clone(
     f.write(fileContents)
   
   # Add a sync record for this file
-  sync.createSync(fileId, saveResponse.hash, local)
+  syncinfo.createSync(fileId, saveResponse.hash, local)
 
   # Print a success message
   success(f"Remote file '{renderedRemoteFilename}' has been cloned onto your local machine as '{local}'.")
 
   # Save the session back onto the disk
-  setSession(authInfo.session)
+  config.setSession(authInfo.session)
   

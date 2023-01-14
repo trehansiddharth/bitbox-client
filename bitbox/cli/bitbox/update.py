@@ -1,6 +1,6 @@
 from bitbox.cli.bitbox.common import *
 from bitbox.cli import *
-import bitbox.cli.sync as sync
+import bitbox.cli.bitbox.syncinfo as syncinfo
 import bitbox.server as server
 from cryptography.fernet import Fernet
 import binascii
@@ -12,13 +12,13 @@ import binascii
 @app.command(short_help="Push changes in a local file to its remote copy")
 def update(local: str = typer.Argument(..., help="Path to the local file whose remote should be updated")):
   # Get user info and try to establish a session
-  authInfo = handleLoginUser()
+  authInfo = config.load()
   
   # Check if the file exists and is not a directory
   confirmLocalFileExists(local)
 
   # Check if the file is in the user's bitbox
-  syncRecord = sync.lookupSync(local)
+  syncRecord = syncinfo.lookupSync(local)
   if syncRecord == None:
     error(f"Local file '{local}' is not known to be synchronized with bitbox.")
 
@@ -68,10 +68,10 @@ def update(local: str = typer.Argument(..., help="Path to the local file whose r
   guard(storeResponse)
 
   # Update the sync record with the new hash
-  sync.updateSync(local, fileHash)
+  syncinfo.updateSync(local, fileHash)
 
   # Tell the user that the file has been pushed
   success(f"Remote file '@{owner}/{filename}' has been updated with local changes.")
 
   # Save the session back onto the disk
-  setSession(authInfo.session)
+  config.setSession(authInfo.session)

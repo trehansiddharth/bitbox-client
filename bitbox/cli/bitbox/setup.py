@@ -51,7 +51,7 @@ def getValidPassword() -> str:
 @app.command(short_help="Set up bitbox under a new or existing user")
 def setup():
   # If the config folder already exists, don't let the user set up again
-  if os.path.exists(BITBOX_KEYFILE_PATH):
+  if os.path.exists(os.path.join(BITBOX_CONFIG_FOLDER, BITBOX_KEYFILE_FILENAME)):
     console.print(f"You've already set up bitbox on this machine! To reconfigure bitbox, delete {BITBOX_CONFIG_FOLDER} and try again.\n")
     console.print("[bold]WARNING: This will delete your private key. It may be wise to move this folder to a different location.[/bold]", style="red")
     raise typer.Exit(code=1)
@@ -86,11 +86,11 @@ def registerUser():
   keyInfo, privateKey = lib.register(username, password)
   
   # Save the user info to disk
-  setKeyInfo(keyInfo)
+  config.setKeyInfo(keyInfo)
 
   # Authenticate the user and save the session securely
   session = server.establishSession(keyInfo.username, privateKey)
-  setSession(session)
+  config.setSession(session)
 
   # Print a success message
   success("\nYou've been successfully registered on BitBox! Get started by running `bitbox --help` to see available commands.")
@@ -128,11 +128,11 @@ def registerClient():
     error("Your password is incorrect. Please try `bitbox setup` again with a new code.")
   
   # Save the user info to disk
-  setKeyInfo(keyInfo)
+  config.setKeyInfo(keyInfo)
   
   # Authenticate the user and save the session securely
   session = server.establishSession(keyInfo.username, privateKey)
-  setSession(session)
+  config.setSession(session)
 
   # Print a success message
   console.print("\n[green]You've successfully logged into BitBox! You can now use Bitbox to store, share, and sync files on this machine.[/green]")

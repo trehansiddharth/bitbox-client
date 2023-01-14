@@ -6,7 +6,7 @@ import sys
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context):
   # Get the key info
-  keyInfo = getKeyInfo()
+  keyInfo = config.getKeyInfo()
 
   # # Log that a command has been invoked
   try:
@@ -20,7 +20,7 @@ def main(ctx: typer.Context):
     return
 
   # Get user info and try to establish a session
-  authInfo = handleLoginUser()
+  authInfo = config.load()
 
   # Print the user's info
   console.print(f"You are logged in as: [bold]{keyInfo.username}[/bold]\n")
@@ -34,7 +34,7 @@ def main(ctx: typer.Context):
   console.print(f"\nTotal space usage: {humanReadableFilesize(bytesUsed)} / 1 GiB ({bytesUsed / 1073741824 :.0%})")
 
   # Save the session back onto the disk
-  setSession(authInfo.session)
+  config.setSession(authInfo.session)
 
 def run():
   try:
@@ -43,13 +43,14 @@ def run():
     pass
 
   try:
-    os.makedirs(BITBOX_SYNCS_FOLDER)
+    os.makedirs(os.path.join(BITBOX_CONFIG_FOLDER, BITBOX_SYNCS_FOLDERNAME))
   except FileExistsError:
     pass
 
-  if not os.path.exists(BITBOX_SYNC_INFO_PATH):
+  syncInfoPath = os.path.join(BITBOX_CONFIG_FOLDER, BITBOX_SYNCS_FOLDERNAME, BITBOX_SYNCINFO_FILENAME)
+  if not os.path.exists(syncInfoPath):
     try:
-      with open(BITBOX_SYNC_INFO_PATH, "w") as f:
+      with open(syncInfoPath, "w") as f:
         f.write("[]")
     except FileExistsError:
       pass

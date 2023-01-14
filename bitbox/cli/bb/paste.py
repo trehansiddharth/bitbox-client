@@ -11,7 +11,7 @@ import os
 @app.command(short_help="Paste the file currently on your clipboard")
 def paste():
   # Get user info and try to establish a session
-  authInfo = handleLoginUser()
+  authInfo = config.load()
 
   # Download the blob
   try:

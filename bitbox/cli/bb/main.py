@@ -7,7 +7,7 @@ from random_username.generate import generate_username
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context):
   # Get the key info
-  keyInfo = getKeyInfo()
+  keyInfo = config.getKeyInfo()
 
   # # Log that a command has been invoked
   try:
@@ -28,7 +28,7 @@ def main(ctx: typer.Context):
     keyInfo, _ = lib.register(username)
     
     # Save the key info to disk
-    setKeyInfo(keyInfo)
+    config.setKeyInfo(keyInfo)
 
     # Print a notification
     console.print(
@@ -42,7 +42,7 @@ def main(ctx: typer.Context):
 
 def run():
   try:
-    os.makedirs(BITBOX_CONFIG_FOLDER)
+    os.makedirs(BB_CONFIG_FOLDER)
   except FileExistsError:
     pass
 

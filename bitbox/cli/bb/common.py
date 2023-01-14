@@ -1,12 +1,20 @@
+from bitbox.cli.common import *
 import typer
 from dataclasses import dataclass
 import os
+
+#
+# Parameters
+#
+
+BB_CONFIG_FOLDER = os.environ.get("BB_CONFIG_FOLDER") or os.path.join(os.path.expanduser("~"), ".bb")
 
 #
 # Global variables
 #
 
 app = typer.Typer()
+config = Config(BB_CONFIG_FOLDER)
 
 #
 # Utility functions

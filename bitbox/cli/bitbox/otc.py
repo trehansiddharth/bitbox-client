@@ -9,7 +9,7 @@ import bitbox.lib as lib
 @app.command(short_help="Generate a one-time-code to setup Bitbox on another machine")
 def otc():
   # Get user info and try to establish a session
-  authInfo = handleLoginUser()
+  authInfo = config.load()
 
   # Create a one-time-code
   otc = createOTC()
@@ -22,4 +22,4 @@ def otc():
   console.print("Enter this code on the machine you want to set up a new Bitbox client on.")
 
   # Save the session back onto the disk
-  setSession(authInfo.session)
+  config.setSession(authInfo.session)

@@ -1,6 +1,6 @@
 from bitbox.cli.bitbox.common import *
 from bitbox.cli import *
-import bitbox.cli.sync as sync
+import bitbox.cli.bitbox.syncinfo as syncinfo
 import bitbox.server as server
 from cryptography.fernet import Fernet
 import binascii
@@ -18,19 +18,19 @@ def add(
     remote = os.path.basename(local)
 
   # Get user info and try to establish a session
-  authInfo = handleLoginUser()
+  authInfo = config.load()
   
   # Confirm that the local file exists and is not a directory
   confirmLocalFileExists(local)
 
   # Confirm that the local file is not already being synced
-  existingSyncRecord = sync.lookupSync(local)
+  existingSyncRecord = syncinfo.lookupSync(local)
   if (existingSyncRecord is not None):
     # Confirm that the remote file still exists
     fileInfo = server.fileInfoById(existingSyncRecord.fileId, authInfo)
     if isinstance(fileInfo, Error):
       # If the remote file no longer exists, delete the sync record
-      sync.deleteSyncsByRemote(existingSyncRecord.fileId)
+      syncinfo.deleteSyncsByRemote(existingSyncRecord.fileId)
     else:
       # If the remote file still exists, tell the user that the file is already being synced
       error(f"Local file {local} is already being synced with remote file '@{fileInfo.owner}/{fileInfo.name}'.")
@@ -68,10 +68,10 @@ def add(
   guard(storeResponse)
   
   # Create a sync record for the file
-  sync.createSync(prepareStoreResponse.fileId, fileHash, local)
+  syncinfo.createSync(prepareStoreResponse.fileId, fileHash, local)
 
   # Tell the user that the file has been added
   success(f"Local file {local} has been added to your bitbox as '@{authInfo.keyInfo.username}/{remote}'.")
 
   # Save the session back onto the disk
-  setSession(authInfo.session)
+  config.setSession(authInfo.session)

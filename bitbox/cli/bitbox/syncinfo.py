@@ -1,10 +1,22 @@
 from bitbox.parameters import *
 from bitbox.cli import *
+from bitbox.cli.bitbox.common import *
 from dataclasses import dataclass
 from typing import Optional, List
 import json
 import os
 import shutil
+
+#
+# Parameters
+#
+
+BITBOX_SYNCS_FOLDER = os.path.join(BITBOX_CONFIG_FOLDER, BITBOX_SYNCS_FOLDERNAME)
+BITBOX_SYNCINFO_PATH = os.path.join(BITBOX_SYNCS_FOLDERNAME, BITBOX_SYNCINFO_FILENAME)
+
+#
+# Types
+#
 
 Inode = int
 
@@ -16,7 +28,6 @@ class SyncRecord:
   inode: Inode
 
 SyncInfo = List[SyncRecord]
-
 
 #
 # Exceptions
@@ -34,19 +45,19 @@ class SyncExistsException(Exception):
 
 def readSyncInfo() -> SyncInfo:
   try:
-    with open(BITBOX_SYNC_INFO_PATH, "r") as f:
+    with open(BITBOX_SYNCINFO_PATH, "r") as f:
       syncInfoJSON = json.load(f)
   except Exception as e:
-    raise ConfigParseException(BITBOX_SYNC_INFO_PATH, e)
+    raise ConfigParseException(BITBOX_SYNCINFO_PATH, e)
   return [SyncRecord(**syncRecord) for syncRecord in syncInfoJSON]
 
 def writeSyncInfo(syncInfo: SyncInfo) -> None:
   syncInfoJSON = [syncRecord.__dict__ for syncRecord in syncInfo]
   try:
-    with open(BITBOX_SYNC_INFO_PATH, "w") as f:
+    with open(BITBOX_SYNCINFO_PATH, "w") as f:
       json.dump(syncInfoJSON, f, indent=2)
   except Exception as e:
-    raise ConfigParseException(BITBOX_SYNC_INFO_PATH, e)
+    raise ConfigParseException(BITBOX_SYNCINFO_PATH, e)
 
 def findInSyncByInode(syncInfo: SyncInfo, inode: Inode) -> Optional[SyncRecord]:
   for syncRecord in syncInfo:

@@ -5,7 +5,7 @@ import bitbox.lib as lib
 @app.command(short_help="Authorize another client to become permanently linked to this clipboard")
 def authorize():
   # Get user info and try to establish a session
-  authInfo = handleLoginUser()
+  authInfo = config.load()
 
   # Print the username
   console.print(f"[bold]Your username is:[/bold] [green]{authInfo.keyInfo.username}[/green]\n")
@@ -24,4 +24,4 @@ def authorize():
   console.print("On the machine you want to link, run [green]`bb link`[/green] and enter the above code and username when prompted.")
 
   # Save the session
-  setSession(authInfo.session)
+  config.setSession(authInfo.session)

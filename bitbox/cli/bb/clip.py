@@ -11,7 +11,7 @@ def clip(
   file: str = typer.Argument(..., help="Name of the file to send to your clipboard.")
 ):
   # Get user info and try to establish a session
-  authInfo = handleLoginUser()
+  authInfo = config.load()
 
   # Confirm that the local file exists and is not a directory
   confirmLocalFileExists(file)
@@ -33,4 +33,4 @@ def clip(
   success(f"File '{file}' has been sent to your clipboard.")
 
   # Save the session
-  setSession(authInfo.session)
+  config.setSession(authInfo.session)
