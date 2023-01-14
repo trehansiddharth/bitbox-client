@@ -1,31 +1,92 @@
-import requests
 from bitbox.parameters import *
-from dataclasses import dataclass
-from typing import Dict, Union, Any, List, Literal
-import sys
-from rich.console import Console
-from Crypto.PublicKey import RSA
 from bitbox.common import *
-import bitbox.util as util
+import bitbox.encryption as encryption
+import requests
+from dataclasses import dataclass
+from typing import Dict, Union, List, Literal, Any
+import enum
 import binascii
-from bitbox.errors import *
 
-def err(value: Any, errs: List[Error] = []) -> bool:
-  if isinstance(value, Error):
-    if errs == []:
-      return True
+#
+# Exceptions
+#
+
+class BitboxException(Exception):
+  def __init__(self, message):
+    self.message = message
+
+class InvalidVersionException(Exception):
+  pass
+
+class AuthenticationException(Exception):
+  pass
+
+#
+# API Errors
+#
+
+class Error(enum.Enum):
+  AUTHENTICATION_FAILED = "authentication-failed"
+  USER_NOT_FOUND = "user-not-found"
+  USER_EXISTS = "user-exists"
+  INVALID_USERNAME = "invalid-username"
+  INVALID_PUBLIC_KEY = "invalid-public-key"
+  FILE_TOO_LARGE = "file-too-large"
+  FILE_EXISTS = "file-exists"
+  FILE_NOT_FOUND = "file-not-found"
+  FILENAME_NOT_SPECIFIC = "filename-not-specific"
+  FILE_NOT_READY = "file-not-ready"
+  RECOVERY_NOT_READY = "recovery-not-ready"
+  INVALID_NUM_BYTES = "invalid-num-bytes"
+  ACCESS_DENIED = "access-denied"
+  INVALID_VERSION = "invalid-version"
+  SERVER_SIDE_ERROR = "server-side-error"
+
+#
+# Helper Functions
+#
+
+def requestWithSession(method: str, url: str, body: Any, authInfo: AuthInfo) -> Union[requests.Response, Error]:
+  response = requests.request(method, url, json=body, headers={"Cookie": authInfo.session})
+  if (response.status_code != BITBOX_STATUS_OK):
+    if response.text == Error.AUTHENTICATION_FAILED.value:
+      privateKey = authInfo.getPrivateKey()
+      try:
+        authInfo.session = establishSession(authInfo.keyInfo.username, privateKey)
+      except Exception as e:
+        if e.args == (Error.AUTHENTICATION_FAILED,):
+          raise AuthenticationException()
+        else:
+          raise e
+
+      response = requests.request(method, url, json=body, headers={"Cookie": authInfo.session})
+      if response.status_code == BITBOX_STATUS_OK:
+        return response
+      elif response.text == Error.AUTHENTICATION_FAILED.value:
+        raise AuthenticationException()
+      else:
+        return Error(response.text)
     else:
-      return value in errs
+      return Error(response.text)
+  return response
 
-def printServerError() -> None:
-  console = Console()
-  console.print("An error occurred on the server", style="red")
-  sys.exit(1)
+def establishSession(username: str, privateKey: RSA.RsaKey) -> str:
+  challengeStr = challenge(username)
+  if isinstance(challengeStr, Error):
+    raise AuthenticationException()
+  
+  challengeBytes = bytearray.fromhex(challengeStr)
+  try:
+    answerBytes = encryption.rsaDecrypt(challengeBytes, privateKey)
+  except:
+    raise Exception(Error.AUTHENTICATION_FAILED)
+  answer = binascii.hexlify(answerBytes).decode("utf-8")
 
-def printInvalidVersionError() -> None:
-  console = Console()
-  console.print("Your Bitbox version is invalid. Please update to the latest version.", style="red")
-  sys.exit(1)
+  session = login(username, answer)
+  if isinstance(session, Error):
+    raise Exception(session)
+  else:
+    return session
 
 #
 # Get User Info
@@ -42,7 +103,7 @@ def userInfo(username: str) -> Union[UserInfoResponse, UserInfoError]:
   if response.status_code == BITBOX_STATUS_OK:
     return UserInfoResponse(**response.json())
   elif response.text == Error.SERVER_SIDE_ERROR.value:
-    printServerError()
+    raise BitboxException(response.text)
   else:
     return Error(response.text)
 
@@ -56,35 +117,45 @@ RegisterUserError = Union[
   Literal[Error.INVALID_PUBLIC_KEY]
 ]
 
-def registerUser(username: str, publicKey: str, encryptedPrivateKey: str) -> Union[None, RegisterUserError]:
+def registerUser(username: str, publicKey: str) -> Union[None, RegisterUserError]:
   registerUserBody = {
     "username": username,
     "publicKey": publicKey,
-    "encryptedPrivateKey": encryptedPrivateKey,
     "version": BITBOX_VERSION,
   }
   response = requests.post(f"http://{BITBOX_HOST}/api/auth/register/user", json=registerUserBody)
   if response.status_code == BITBOX_STATUS_OK:
     return None
   elif response.text == Error.INVALID_VERSION.value:
-    printInvalidVersionError()
+    raise InvalidVersionException()
   elif response.text == Error.SERVER_SIDE_ERROR.value:
-    printServerError()
+    raise BitboxException(response.text)
   else:
     return Error(response.text)
 
 #
-# Generate OTC
+# Push Encrypted Key
 #
 
-GenerateOTCResponse = str
+PushEncryptedKeyError = Literal[Error.USER_NOT_FOUND]
 
-def generateOTC(authInfo: AuthInfo) -> GenerateOTCResponse:
-  response = requestWithSession("GET", f"http://{BITBOX_HOST}/api/auth/recover/generate-otc", None, authInfo)
+def pushEncryptedKey(encryptedPrivateKey: str, authInfo: AuthInfo) -> Union[None, PushEncryptedKeyError]:
+  pushEncryptedKeyBody = {
+    "encryptedPrivateKey": encryptedPrivateKey,
+    "version": BITBOX_VERSION
+  }
+  response = requestWithSession("POST",
+    f"http://{BITBOX_HOST}/api/auth/recover/push-encrypted-key",
+    pushEncryptedKeyBody,
+    authInfo)
   if response.status_code == BITBOX_STATUS_OK:
-    return response.text
+    return None
+  elif response.text == Error.INVALID_VERSION.value:
+    raise InvalidVersionException()
+  elif response.text == Error.SERVER_SIDE_ERROR.value:
+    raise BitboxException(response.text)
   else:
-    printServerError()
+    return Error(response.text)
 
 #
 # Recover Keys
@@ -92,23 +163,21 @@ def generateOTC(authInfo: AuthInfo) -> GenerateOTCResponse:
 
 RecoverKeysError = Union[
   Literal[Error.USER_NOT_FOUND],
-  Literal[Error.OTC_NOT_GENERATED],
-  Literal[Error.INVALID_OTC]
+  Literal[Error.RECOVERY_NOT_READY]
 ]
 
-def recoverKeys(username: str, otc: str) -> Union[str, RecoverKeysError]:
+def recoverKeys(username: str) -> Union[str, RecoverKeysError]:
   recoverKeysBody = {
     "username": username,
-    "otc": otc,
     "version": BITBOX_VERSION
   }
   response = requests.post(f"http://{BITBOX_HOST}/api/auth/recover/recover-keys", json=recoverKeysBody)
   if response.status_code == BITBOX_STATUS_OK:
     return response.text
   elif response.text == Error.INVALID_VERSION.value:
-    printInvalidVersionError()
+    raise InvalidVersionException()
   elif response.text == Error.SERVER_SIDE_ERROR.value:
-    printServerError()
+    raise BitboxException(response.text)
   else:
     return Error(response.text)
 
@@ -128,7 +197,7 @@ def challenge(username: str) -> Union[ChallengeResponse, ChallengeError]:
   if response.status_code == BITBOX_STATUS_OK:
     return response.text
   elif response.text == Error.SERVER_SIDE_ERROR.value:
-    printServerError()
+    raise BitboxException(response.text)
   else:
     return Error(response.text)
 
@@ -151,9 +220,9 @@ def login(username: str, challengeResponse: str) -> Union[Session, LoginError]:
   if response.status_code == BITBOX_STATUS_OK:
     return response.headers["set-cookie"]
   elif response.text == Error.INVALID_VERSION.value:
-    printInvalidVersionError()
+    raise InvalidVersionException()
   elif response.text == Error.SERVER_SIDE_ERROR.value:
-    printServerError()
+    raise BitboxException(response.text)
   else:
     return Error(response.text)
 
@@ -185,7 +254,7 @@ def prepareStore(filename: str, bytes: int, hash: str, personalEncryptedKey: str
     authInfo)
   if isinstance(response, Error):
     if response == Error.SERVER_SIDE_ERROR:
-      printServerError()
+      raise BitboxException(response.text)
     else:
       return response
   else:
@@ -218,7 +287,7 @@ def prepareUpdate(fileId: str, bytes: int, hash: str, authInfo: AuthInfo) -> Uni
     authInfo)
   if isinstance(response, Error):
     if response == Error.SERVER_SIDE_ERROR:
-      printServerError()
+      raise BitboxException(response.text)
     else:
       return response
   else:
@@ -243,7 +312,7 @@ def store(fileId: str, authInfo: AuthInfo) -> Union[None, StoreError]:
     authInfo)
   if isinstance(response, Error):
     if response == Error.SERVER_SIDE_ERROR:
-      printServerError()
+      raise BitboxException(response.text)
     else:
       return response
 
@@ -267,7 +336,7 @@ def share(fileId: str, recipientEncryptedKeys: Dict[str, str], authInfo: AuthInf
     authInfo)
   if isinstance(response, Error):
     if response == Error.SERVER_SIDE_ERROR:
-      printServerError()
+      raise BitboxException(response.text)
     else:
       return response
 
@@ -296,7 +365,7 @@ def save(fileId: str, authInfo: AuthInfo) -> Union[SaveResponse, SaveError]:
     authInfo)
   if isinstance(response, Error):
     if response == Error.SERVER_SIDE_ERROR:
-      printServerError()
+      raise BitboxException(response.text)
     else:
       return response
   else:
@@ -321,7 +390,7 @@ def delete(fileId: str, authInfo: AuthInfo) -> Union[None, DeleteError]:
     authInfo)
   if isinstance(response, Error):
     if response == Error.SERVER_SIDE_ERROR:
-      printServerError()
+      raise BitboxException(response.text)
     else:
       return response
 
@@ -349,7 +418,7 @@ def fileInfo(filename: str, owner: Optional[str], authInfo: AuthInfo) -> Union[F
     authInfo)
   if isinstance(response, Error):
     if response == Error.SERVER_SIDE_ERROR:
-      printServerError()
+      raise BitboxException(response.text)
     else:
       return response
   else:
@@ -365,7 +434,7 @@ def fileInfoById(fileId: str, authInfo: AuthInfo) -> Union[FileInfoResponse, Fil
     authInfo)
   if isinstance(response, Error):
     if response == Error.SERVER_SIDE_ERROR:
-      printServerError()
+      raise BitboxException(response.text)
     else:
       return response
   else:
@@ -383,7 +452,7 @@ def filesInfo(authInfo: AuthInfo) -> FilesInfoResponse:
     None,
     authInfo)
   if isinstance(response, Error):
-    printServerError()
+    raise BitboxException(response.text)
   else:
     return [FileInfoResponse(**fileInfo) for fileInfo in response.json()]
 
@@ -399,7 +468,7 @@ def logCommand(data: str, username: str) -> None:
   }
   response = requests.post(f"http://{BITBOX_HOST}/api/log/command", json=logCommandBody)
   if response.status_code != BITBOX_STATUS_OK:
-    printServerError()
+    raise BitboxException(response.text)
 
 #
 # Log Error
@@ -413,55 +482,4 @@ def logError(data: str, username: str) -> None:
   }
   response = requests.post(f"http://{BITBOX_HOST}/api/log/error", json=logErrorBody)
   if response.status_code != BITBOX_STATUS_OK:
-    printServerError()
-
-#
-# Utility functions
-#
-
-def requestWithSession(method: str, url: str, body: Any, authInfo: AuthInfo) -> Union[requests.Response, Error]:
-  response = requests.request(method, url, json=body, headers={"Cookie": authInfo.session})
-  if (response.status_code != BITBOX_STATUS_OK):
-    if response.text == Error.AUTHENTICATION_FAILED.value:
-      privateKey = util.fetchPrivateKey(authInfo)
-      try:
-        authInfo.session = establishSession(authInfo.keyInfo.username, privateKey)
-      except Exception as e:
-        if e.args == (Error.AUTHENTICATION_FAILED,):
-          console = Console()
-          console.print("Incorrect password.", style="red")
-          sys.exit(1)
-        else:
-          raise e
-
-      util.setSession(authInfo.session)
-      response = requests.request(method, url, json=body, headers={"Cookie": authInfo.session})
-      if response.status_code == BITBOX_STATUS_OK:
-        return response
-      elif response.text == Error.AUTHENTICATION_FAILED.value:
-        console = Console()
-        console.print("Incorrect password.", style="red")
-        sys.exit(1)
-      else:
-        return Error(response.text)
-    else:
-      return Error(response.text)
-  return response
-
-# Raises: AuthenticationFailed, UserNotFound, ConfigParseFailed
-def establishSession(username: str, privateKey: RSA.RsaKey) -> str:
-  challengeStr = challenge(username)
-  guard(challengeStr)
-  
-  challengeBytes = bytearray.fromhex(challengeStr)
-  try:
-    answerBytes = util.rsaDecrypt(challengeBytes, privateKey)
-  except:
-    raise Exception(Error.AUTHENTICATION_FAILED)
-  answer = binascii.hexlify(answerBytes).decode("utf-8")
-
-  session = login(username, answer)
-  if isinstance(session, Error):
-    raise Exception(session)
-  else:
-    return session
+    raise BitboxException(response.text)

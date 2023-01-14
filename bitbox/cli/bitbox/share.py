@@ -1,4 +1,7 @@
-from bitbox.commands.common import *
+from bitbox.cli.bitbox.common import *
+from bitbox.cli import *
+import bitbox.server as server
+import binascii
 
 #
 # Share command
@@ -9,7 +12,7 @@ def share(
   remote: str = typer.Argument(..., help="Name of the remote file to share"),
   recipients: List[str] = typer.Argument(..., help="Usernames of the users to share the file with")):
   # Get user info and try to establish a session
-  authInfo = loginUser()
+  authInfo = handleLoginUser()
 
   # Get the encrypted file key from the server
   fileInfo = server.fileInfo(remote, authInfo.keyInfo.username, authInfo)
@@ -35,7 +38,7 @@ def share(
     publicKeys[recipient[1:]] = RSA.import_key(userInfoResponse.publicKey)
 
   # Decrypt the file key
-  privateKey = fetchPrivateKey(authInfo)
+  privateKey = authInfo.getPrivateKey()
   decryptedFileKey = rsaDecrypt(binascii.unhexlify(encryptedKey), privateKey)
 
   # Re-encrypt the file key for each recipient
@@ -51,3 +54,6 @@ def share(
 
   # Print a success message
   success(f"{remote} has been shared with: {', '.join(recipients)}")
+
+  # Save the session back onto the disk
+  setSession(authInfo.session)

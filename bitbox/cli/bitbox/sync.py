@@ -1,5 +1,10 @@
-from bitbox.commands.common import *
-import bitbox.sync as syncModule
+from bitbox.cli.bitbox.common import *
+from bitbox.cli import *
+import bitbox.server as server
+import bitbox.cli.sync as syncModule
+from rich.prompt import Confirm
+import binascii
+from cryptography.fernet import Fernet
 
 #
 # Utility functions
@@ -52,7 +57,7 @@ def syncFile(authInfo: AuthInfo, file: str, syncRecord : syncModule.SyncRecord, 
   
   # Decrypt the file
   downloadFileContents = downloadResponse.text
-  privateKey = fetchPrivateKey(authInfo)
+  privateKey = authInfo.getPrivateKey()
   fileKey = rsaDecrypt(binascii.unhexlify(saveResponse.encryptedKey), privateKey)
   fileContents = Fernet(fileKey).decrypt(downloadFileContents)
 
@@ -80,7 +85,7 @@ def syncFile(authInfo: AuthInfo, file: str, syncRecord : syncModule.SyncRecord, 
 @app.command(short_help="Synchronize all clones in a given path with their remotes")
 def sync(path: str = typer.Argument(".", help="Path to synchronize")):
   # Get user info and try to establish a session
-  authInfo = loginUser()
+  authInfo = handleLoginUser()
 
   # Keep track of how many files have been modified
   modifiedCount = 0
@@ -122,3 +127,6 @@ def sync(path: str = typer.Argument(".", help="Path to synchronize")):
 
   # Print a success message
   success(f"\nSync successful: {modifiedCount} files modified.")
+
+  # Save the session back onto the disk
+  setSession(authInfo.session)

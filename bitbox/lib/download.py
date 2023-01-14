@@ -1,8 +1,11 @@
 from bitbox.common import *
-from bitbox.util import *
+from bitbox.encryption import *
+from bitbox.lib.exceptions import *
 import bitbox.server as server
 from cryptography.fernet import Fernet
 import binascii
+import requests
+import hashlib
 
 def download(filename: str, owner: str, authInfo: AuthInfo) -> bytes:
   """
@@ -12,18 +15,23 @@ def download(filename: str, owner: str, authInfo: AuthInfo) -> bytes:
   :param owner: Owner of the file. Should be just the username and not `"@" + username`.
   :param authInfo: Authentication information.
 
-  :raises Error.FILE_NOT_FOUND: If the file doesn't exist.
-  :raises Error.USER_NOT_FOUND: If the owner doesn't exist.
-  :raises Error.FILE_NOT_READY: If the file is not ready to be downloaded.
-  :raises Error.DOWNLOAD_ERROR: If the download failed.
+  :raises FileNotFoundException: If the file doesn't exist.
+  :raises UserNotFoundException: If the owner doesn't exist.
+  :raises FileNotReadyException: If the file is not ready to be downloaded.
+  :raises DownloadException: If the download failed.
 
   :returns: The decrypted blob.
   """
 
   # Get the file info
   fileInfo = server.fileInfo(filename, owner, authInfo)
-  if isinstance(fileInfo, Error):
-    raise fileInfo
+  if isinstance(fileInfo, server.Error):
+    if fileInfo == server.Error.FILE_NOT_FOUND:
+      raise FileNotFoundException(fileInfo.name)
+    elif fileInfo == server.Error.USER_NOT_FOUND:
+      raise UserNotFoundException(owner)
+    else:
+      raise BitboxException(fileInfo)
   
   # Grab the file ID and hash of the blob
   fileId = fileInfo.fileId
@@ -31,23 +39,28 @@ def download(filename: str, owner: str, authInfo: AuthInfo) -> bytes:
 
   # Grab the download link for the encrypted blob
   saveResponse = server.save(fileId, authInfo)
-  if isinstance(saveResponse, Error):
-    raise saveResponse
+  if isinstance(saveResponse, server.Error):
+    if saveResponse == server.Error.FILE_NOT_FOUND:
+      raise FileNotFoundException(fileInfo.name)
+    elif saveResponse == server.Error.FILE_NOT_READY:
+      raise FileNotReadyException(fileInfo.name)
+    else:
+      raise BitboxException(saveResponse)
   
   # Download the file
   downloadResponse = requests.get(saveResponse.downloadURL)
   if downloadResponse.status_code != 200:
-    raise Error.DOWNLOAD_ERROR
+    raise DownloadException()
   
   # Decrypt the file
   encryptedBlobStr = downloadResponse.text
-  privateKey = fetchPrivateKey(authInfo)
+  privateKey = authInfo.getPrivateKey()
   fileKey = rsaDecrypt(binascii.unhexlify(saveResponse.encryptedKey), privateKey)
   blob = Fernet(fileKey).decrypt(encryptedBlobStr)
 
   # As a security measure, check if the hash of the decrypted blob matches the hash of the blob on the server
   if hashlib.sha256(blob).hexdigest() != blobHash:
-    raise Error.DOWNLOAD_ERROR
+    raise DownloadException()
 
   # Return the decrypted blob
   return blob

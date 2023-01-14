@@ -1,5 +1,9 @@
-from bitbox.commands.common import *
-import bitbox.sync as sync
+from bitbox.cli.bitbox.common import *
+from bitbox.cli import *
+import bitbox.cli.sync as sync
+import bitbox.server as server
+from cryptography.fernet import Fernet
+import binascii
 
 #
 # Clone command
@@ -18,7 +22,7 @@ def clone(
     error(f"A local file at '{local}' already exists. Use the `--local` flag to specify a different name for the local file.")
 
   # Get user info and try to establish a session
-  authInfo = loginUser()
+  authInfo = handleLoginUser()
 
   # Parse the remote file name and get file information
   owner, filename = parseRemoteFilename(remote, None)
@@ -63,7 +67,7 @@ def clone(
   
   # Decrypt the file
   downloadFileContents = downloadResponse.text
-  privateKey = fetchPrivateKey(authInfo)
+  privateKey = authInfo.getPrivateKey()
   fileKey = rsaDecrypt(binascii.unhexlify(saveResponse.encryptedKey), privateKey)
   fileContents = Fernet(fileKey).decrypt(downloadFileContents)
 
@@ -81,4 +85,7 @@ def clone(
 
   # Print a success message
   success(f"Remote file '{renderedRemoteFilename}' has been cloned onto your local machine as '{local}'.")
+
+  # Save the session back onto the disk
+  setSession(authInfo.session)
   

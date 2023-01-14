@@ -1,14 +1,8 @@
-from dataclasses import dataclass
-from typing import TypeVar, Dict, Any, Optional, Generic, Literal, List, Callable
-import sys
-from rich.console import Console
 from bitbox.parameters import *
+from dataclasses import dataclass
+from typing import Optional, List, Callable
 import time
-from bitbox.errors import *
 from Crypto.PublicKey import RSA
-
-# A unique hex string for each time the program is run, used for logging
-CURRENT_CONTEXT = hex(round(time.time() * 1000))[2:]
 
 PersonalKey = str
 Session = str
@@ -16,7 +10,6 @@ Session = str
 @dataclass
 class KeyInfo:
   username: str
-  clientCreated: int
   publicKey: str
   privateKey: str
   encrypted: bool
@@ -24,12 +17,31 @@ class KeyInfo:
 @dataclass
 class AuthInfo:
   keyInfo: KeyInfo
-  session: str
+  session: Session
   decryptPrivateKey: Callable[[str], RSA.RsaKey]
   cachedPrivateKey: Optional[RSA.RsaKey]
 
+  def getPrivateKey(self) -> RSA.RsaKey:
+    """
+    Returns the private key, either from the cache or by decrypting it. If the key is encrypted,
+    and the password was not provided on login, the password will be prompted for. The private
+    key is cached in the AuthInfo object.
+    """
+    # If we've already cached the private key, return it
+    if self.cachedPrivateKey is not None:
+      return self.cachedPrivateKey
+    
+    # Otherwise, get the private key using the decrypt function
+    privateKey = self.decryptPrivateKey(self.keyInfo.privateKey)
+
+    # Save it in the cache
+    self.cachedPrivateKey = privateKey
+
+    # Return it
+    return privateKey
+
 @dataclass
-class BasicFileInfo:
+class FileInfo:
   fileId: str
   name: str
   owner: str
@@ -37,16 +49,4 @@ class BasicFileInfo:
   lastModified: int
   encryptedKey: str
   hash: str
-
-@dataclass
-class FileInfo(BasicFileInfo):
   sharedWith: List[str]
-
-Session = str
-
-def guard(value: Any, exceptions: Dict[str, str] = {}) -> None:
-  if not isinstance(value, Error):
-    return
-  console = Console()
-  console.print(f"ERROR: {exceptions[value] if value in exceptions else value}", style="red")
-  sys.exit(1)

@@ -1,4 +1,6 @@
-from bitbox.commands.common import *
+from bitbox.cli.bitbox.common import *
+from bitbox.cli import *
+import bitbox.server as server
 import sys
 
 @app.callback(invoke_without_command=True)
@@ -18,7 +20,7 @@ def main(ctx: typer.Context):
     return
 
   # Get user info and try to establish a session
-  authInfo = loginUser()
+  authInfo = handleLoginUser()
 
   # Print the user's info
   console.print(f"You are logged in as: [bold]{keyInfo.username}[/bold]\n")
@@ -30,3 +32,29 @@ def main(ctx: typer.Context):
   printFilesInfo(keyInfo.username, filesInfo)
   bytesUsed = sum([file.bytes for file in filesInfo if file.owner == keyInfo.username])
   console.print(f"\nTotal space usage: {humanReadableFilesize(bytesUsed)} / 1 GiB ({bytesUsed / 1073741824 :.0%})")
+
+  # Save the session back onto the disk
+  setSession(authInfo.session)
+
+def run():
+  try:
+    os.makedirs(BITBOX_CONFIG_FOLDER)
+  except FileExistsError:
+    pass
+
+  try:
+    os.makedirs(BITBOX_SYNCS_FOLDER)
+  except FileExistsError:
+    pass
+
+  if not os.path.exists(BITBOX_SYNC_INFO_PATH):
+    try:
+      with open(BITBOX_SYNC_INFO_PATH, "w") as f:
+        f.write("[]")
+    except FileExistsError:
+      pass
+
+  try:
+    app()
+  except lib.DecryptionException:
+    error("Incorrect password.")

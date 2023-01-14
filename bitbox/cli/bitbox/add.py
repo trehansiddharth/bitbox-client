@@ -1,5 +1,9 @@
-from bitbox.commands.common import *
-import bitbox.sync as sync
+from bitbox.cli.bitbox.common import *
+from bitbox.cli import *
+import bitbox.cli.sync as sync
+import bitbox.server as server
+from cryptography.fernet import Fernet
+import binascii
 
 #
 # Add command
@@ -14,7 +18,7 @@ def add(
     remote = os.path.basename(local)
 
   # Get user info and try to establish a session
-  authInfo = loginUser()
+  authInfo = handleLoginUser()
   
   # Confirm that the local file exists and is not a directory
   confirmLocalFileExists(local)
@@ -68,3 +72,6 @@ def add(
 
   # Tell the user that the file has been added
   success(f"Local file {local} has been added to your bitbox as '@{authInfo.keyInfo.username}/{remote}'.")
+
+  # Save the session back onto the disk
+  setSession(authInfo.session)

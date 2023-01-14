@@ -1,5 +1,9 @@
-from bitbox.commands.common import *
-import bitbox.sync as sync
+from bitbox.cli.bitbox.common import *
+from bitbox.cli import *
+import bitbox.cli.sync as sync
+import bitbox.server as server
+from cryptography.fernet import Fernet
+import binascii
 
 #
 # Push command
@@ -8,7 +12,7 @@ import bitbox.sync as sync
 @app.command(short_help="Push changes in a local file to its remote copy")
 def update(local: str = typer.Argument(..., help="Path to the local file whose remote should be updated")):
   # Get user info and try to establish a session
-  authInfo = loginUser()
+  authInfo = handleLoginUser()
   
   # Check if the file exists and is not a directory
   confirmLocalFileExists(local)
@@ -41,7 +45,7 @@ def update(local: str = typer.Argument(..., help="Path to the local file whose r
     return
   
   # Get the user's private key so we can decrypt the file key
-  privateKey = fetchPrivateKey(authInfo)
+  privateKey = authInfo.getPrivateKey()
   
   # Decrypt the file key
   fileKey = rsaDecrypt(binascii.unhexlify(fileInfo.encryptedKey), privateKey)
@@ -68,3 +72,6 @@ def update(local: str = typer.Argument(..., help="Path to the local file whose r
 
   # Tell the user that the file has been pushed
   success(f"Remote file '@{owner}/{filename}' has been updated with local changes.")
+
+  # Save the session back onto the disk
+  setSession(authInfo.session)

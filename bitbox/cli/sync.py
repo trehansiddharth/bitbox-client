@@ -1,13 +1,10 @@
+from bitbox.parameters import *
+from bitbox.cli import *
 from dataclasses import dataclass
 from typing import Optional, List
-from bitbox.parameters import *
 import json
 import os
 import shutil
-from bitbox.errors import *
-
-BITBOX_SYNCS_FOLDER = os.path.join(BITBOX_CONFIG_FOLDER, "syncs")
-BITBOX_SYNC_INFO_PATH = os.path.join(BITBOX_CONFIG_FOLDER, "syncinfo.json")
 
 Inode = int
 
@@ -20,27 +17,36 @@ class SyncRecord:
 
 SyncInfo = List[SyncRecord]
 
+
+#
+# Exceptions
+#
+
+class SyncNotFoundException(Exception):
+  pass
+
+class SyncExistsException(Exception):
+  pass
+
 #
 # Utility functions
 #
 
-# Raises: ConfigParseFailed
 def readSyncInfo() -> SyncInfo:
   try:
     with open(BITBOX_SYNC_INFO_PATH, "r") as f:
       syncInfoJSON = json.load(f)
   except Exception as e:
-    raise Exception(Error.CONFIG_PARSE_FAILED)
+    raise ConfigParseException(BITBOX_SYNC_INFO_PATH, e)
   return [SyncRecord(**syncRecord) for syncRecord in syncInfoJSON]
 
-# Raises: ConfigParseFailed
 def writeSyncInfo(syncInfo: SyncInfo) -> None:
   syncInfoJSON = [syncRecord.__dict__ for syncRecord in syncInfo]
   try:
     with open(BITBOX_SYNC_INFO_PATH, "w") as f:
       json.dump(syncInfoJSON, f, indent=2)
   except Exception as e:
-    raise Exception(Error.CONFIG_PARSE_FAILED)
+    raise ConfigParseException(BITBOX_SYNC_INFO_PATH, e)
 
 def findInSyncByInode(syncInfo: SyncInfo, inode: Inode) -> Optional[SyncRecord]:
   for syncRecord in syncInfo:
@@ -73,7 +79,7 @@ def createSync(fileId: str, hash: str, localFile: str):
   # Check if sync already exists
   syncRecord = findInSyncByInode(syncInfo, inode)
   if syncRecord != None:
-    raise Exception(Error.SYNC_EXISTS)
+    raise SyncExistsException()
   
   # Create an id for the sync that doesn't exist yet
   syncId = getNewSyncId(syncInfo)
@@ -128,7 +134,7 @@ def updateSync(localFile: str, hash: str):
   # Find sync record by inode
   syncRecord = findInSyncByInode(syncInfo, inode)
   if syncRecord == None:
-    raise Exception(Error.SYNC_NOT_FOUND)
+    raise SyncNotFoundException()
   
   # Update sync record
   syncRecord.lastHash = hash
