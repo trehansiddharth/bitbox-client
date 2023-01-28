@@ -10,19 +10,32 @@ def login():
 
   # Wait to receive information from the other client
   username = console.input("[bold]Username:[/bold] ")
-  otc = console.input("[bold]One-time-code:[/bold] ")
+  otc = console.input("[bold]One-time-code (case-insensitive):[/bold] ").lower().strip()
 
-  # Recover the key info and private key
+  # Recover a recovery key
   try:
-    keyInfo, privateKey = lib.recover(username, otc)
-  except lib.UserNotFoundException:
-    error("That username does not exist. Did you enter the correct username? It is printed when you run `bb authorize`.")
+    recoveryKeyInfo = lib.recover(username)
   except lib.RecoveryNotReadyException:
-    error("That one-time-code is invalid. Please try `bb login` again with a new code.")
-  except lib.InvalidOTCException:
-    error("That one-time-code is invalid. Please try `bb login` again with a new code.")
-  except lib.DecryptionException:
-    error("Your password is incorrect. Please try `bb login` again with a new code.")
+    error("Could not authenticate. Please run `bb` on a machine you're already logged in on to generate a one-time-code.")
+  
+  # Try to decrypt the recovery key with a one-time code and password
+  tries = 3
+  while tries > 0:
+    # Try to decrypt the private key
+    try:
+      keyInfo, privateKey = recoveryKeyInfo.decrypt(otc)
+      break
+    except lib.InvalidOTCException:
+      pass
+    except lib.DecryptionException:
+      pass
+    
+    if tries == 1:
+      error("Your one-time-code/password combination is invalid. Could not log in.")
+    else:
+      warning("Your one-time-code/password combination is invalid. Please try again.\n")
+      otc = console.input("[bold]One-time-code (case-insensitive):[/bold] ").lower().strip()
+    tries -= 1
   
   # Save the user info to disk
   config.setKeyInfo(keyInfo)

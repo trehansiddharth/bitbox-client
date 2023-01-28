@@ -72,21 +72,32 @@ def registerClient():
   console.print("\nFrom a machine that has already been configured with Bitbox, run `bitbox otc` to generate a one-time-code. This is a phrase of 4 words. Enter that code below.")
   otc = Prompt.ask("Code (case-insensitive)").lower().strip()
 
-  # Check that all words in the otc are within the dictionary
-  if any([otcWord not in otcDict.values() for otcWord in otc.split(" ")]):
-    error("That one-time-code is invalid. Please try `bitbox setup` again with a new code.")
-
-  # Recover the key info and private key
+  # Recover a recovery key
   try:
-    keyInfo, privateKey = lib.recover(username, otc)
+    recoveryKeyInfo = lib.recover(username)
   except lib.UserNotFoundException:
     error("That username does not exist. Did you mean to set up a new user account?")
   except lib.RecoveryNotReadyException:
-    error("That one-time-code is invalid. Please try `bitbox setup` again with a new code.")
-  except lib.InvalidOTCException:
-    error("That one-time-code is invalid. Please try `bitbox setup` again with a new code.")
-  except lib.DecryptionException:
-    error("Your password is incorrect. Please try `bitbox setup` again with a new code.")
+    error("Could not authenticate. Please run `bitbox otc` on a machine you're already logged in on to generate a one-time-code.")
+  
+  # Try to decrypt the recovery key with a one-time code and password
+  tries = 3
+  while tries > 0:
+    # Try to decrypt the private key
+    try:
+      keyInfo, privateKey = recoveryKeyInfo.decrypt(otc)
+      break
+    except lib.InvalidOTCException:
+      pass
+    except lib.DecryptionException:
+      pass
+    
+    if tries == 1:
+      error("Your one-time-code/password combination is invalid. Could not log in.")
+    else:
+      warning("Your one-time-code/password combination is invalid. Please try again.\n")
+      otc = Prompt.ask("Code (case-insensitive)").lower().strip()
+    tries -= 1
   
   # Save the user info to disk
   config.setKeyInfo(keyInfo)

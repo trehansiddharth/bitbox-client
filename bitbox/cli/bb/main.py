@@ -19,7 +19,7 @@ def main(ctx: typer.Context):
     pass
 
   # If the keyfile doesn't exist, create a new user
-  if keyInfo is None:
+  if (keyInfo is None) and (ctx.invoked_subcommand != "login"):
     # Print a welcome message
     console.print(
       "\n[bold]Welcome![/bold] `bb` is a command-line clipboard for machine-to-machine "
